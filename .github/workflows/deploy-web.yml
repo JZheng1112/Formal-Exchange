@@ -39,6 +39,9 @@ jobs:
       - name: Add 404.html for SPA routing
         run: cp dist/index.html dist/404.html
 
+      - name: Add CNAME for custom domain
+        run: echo "formal-exchange.co.uk" > dist/CNAME
+
       - uses: actions/configure-pages@v5
 
       - uses: actions/upload-pages-artifact@v3
