@@ -105,6 +105,10 @@ export default function LoginScreen() {
           <Text style={styles.primaryButtonText}>{submitting ? text("Logging in...", "正在登录……") : text("Log in", "登录")}</Text>
         </Pressable>
 
+        <Pressable style={styles.forgotButton} onPress={() => router.push("/forgot-password")}>
+          <Text style={styles.forgotText}>{text("Forgot password?", "忘记密码？")}</Text>
+        </Pressable>
+
         <Pressable style={styles.linkButton} onPress={() => router.push("/register")}>
           <Text style={styles.linkText}>{text("No account yet? Create one", "还没有账号？立即注册")}</Text>
         </Pressable>
@@ -131,6 +135,8 @@ const styles = StyleSheet.create({
   primaryButton: { marginTop: 22, height: 54, borderRadius: 18, backgroundColor: COLORS.navy, alignItems: "center", justifyContent: "center" },
   disabled: { opacity: 0.55 },
   primaryButtonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "900" },
+  forgotButton: { marginTop: 14, alignItems: "center" },
+  forgotText: { color: COLORS.muted, fontSize: 13, fontWeight: "700" },
   linkButton: { marginTop: 16, alignItems: "center" },
   linkText: { color: COLORS.navy, fontWeight: "900" },
 });

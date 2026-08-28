@@ -56,6 +56,11 @@ export function MarketplaceHome() {
   const [filterUni, setFilterUni] = useState<"all" | "Oxford" | "Cambridge">("all");
   const [filterDateFrom, setFilterDateFrom] = useState("");
   const [filterDateTo, setFilterDateTo] = useState("");
+  const [applied, setApplied] = useState<{kw:string;uni:"all"|"Oxford"|"Cambridge";from:string;to:string}>({kw:"",uni:"all",from:"",to:""});
+  const hasUnapplied = filterKeyword !== applied.kw || filterUni !== applied.uni || filterDateFrom !== applied.from || filterDateTo !== applied.to;
+  const applyFilters = () => setApplied({kw:filterKeyword,uni:filterUni,from:filterDateFrom,to:filterDateTo});
+  const clearFilters = () => { setFilterKeyword(""); setFilterUni("all"); setFilterDateFrom(""); setFilterDateTo(""); setApplied({kw:"",uni:"all",from:"",to:""}); };
+  const hasActiveFilters = applied.kw || applied.uni !== "all" || applied.from || applied.to;
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   useEffect(() => {
@@ -90,13 +95,13 @@ export function MarketplaceHome() {
       (filter === "event" && x.listing_category === "event");
     const isFormal = (x.listing_category ?? "formal") === "formal";
     const uni = x.campus ?? x.colleges?.university;
-    const inUni = !isFormal || filterUni === "all" || uni === filterUni;
-    const kw = filterKeyword.trim().toLocaleLowerCase();
+    const inUni = !isFormal || applied.uni === "all" || uni === applied.uni;
+    const kw = applied.kw.trim().toLocaleLowerCase();
     const kwFields = [x.colleges?.name, x.colleges?.university, x.ticket_type, x.formal_type, x.origin_name, x.destination_name, x.event_name, x.event_name_en, x.event_name_zh, x.campus].filter(Boolean).join(" ").toLocaleLowerCase();
     const inKeyword = !kw || kwFields.includes(kw);
     const eventDate = x.formal_date ?? x.arrival_date ?? "";
-    const inDateFrom = !filterDateFrom || eventDate >= filterDateFrom;
-    const inDateTo = !filterDateTo || eventDate <= filterDateTo;
+    const inDateFrom = !applied.from || eventDate >= applied.from;
+    const inDateTo = !applied.to || eventDate <= applied.to;
     const searchable = [
       x.colleges?.name,
       x.colleges?.university,
@@ -200,7 +205,7 @@ export function MarketplaceHome() {
         <Pressable style={s.filterToggle} onPress={() => setFiltersOpen(v => !v)}>
           <Ionicons name="options-outline" size={16} color="#071B3A" />
           <Text style={s.filterToggleText}>{text("Filters","筛选")}</Text>
-          {(filterUni !== "all" || filterKeyword || filterDateFrom || filterDateTo) ? <View style={s.filterDot} /> : null}
+          {hasActiveFilters ? <View style={s.filterDot} /> : null}
           <Ionicons name={filtersOpen ? "chevron-up" : "chevron-down"} size={16} color="#64748B" />
         </Pressable>
         {filtersOpen ? <View style={s.filterBar}>
@@ -232,10 +237,17 @@ export function MarketplaceHome() {
               </>}
             </View>
           </View>
-          {(filterUni !== "all" || filterKeyword || filterDateFrom || filterDateTo) ? <Pressable style={s.filterClear} onPress={() => { setFilterUni("all"); setFilterKeyword(""); setFilterDateFrom(""); setFilterDateTo(""); }}>
-            <Ionicons name="close-circle-outline" size={14} color="#9A3412" />
-            <Text style={s.filterClearText}>{text("Clear all filters","清除所有筛选")}</Text>
-          </Pressable> : null}
+          <View style={s.filterActions}>
+            <Pressable style={[s.filterApply, !hasUnapplied && s.filterApplyDisabled]} onPress={applyFilters} disabled={!hasUnapplied}>
+              <Ionicons name="search" size={15} color="#fff" />
+              <Text style={s.filterApplyText}>{text("Apply","应用筛选")}</Text>
+            </Pressable>
+            {hasActiveFilters ? <Pressable style={s.filterClear} onPress={clearFilters}>
+              <Ionicons name="close-circle-outline" size={14} color="#9A3412" />
+              <Text style={s.filterClearText}>{text("Clear all","清除全部")}</Text>
+            </Pressable> : null}
+          </View>
+          {(filterKeyword || filterUni !== "all" || filterDateFrom || filterDateTo) ? <Text style={s.filterHint}>{text("Fill in only the fields you need, then tap Apply.","只需填写需要的字段，然后点「应用筛选」。")}</Text> : null}
         </View> : null}
         <View style={s.resultHeading}><Text style={[s.h, mobile && s.hMobile]}>{tradeMode === "swap" ? text("Tickets open to swaps", "愿意换票的帖子") : text("Latest seller listings", "最新卖家帖子")}</Text><Text style={s.resultCount}>{text(`${shown.length} listings`, `${shown.length} 条帖子`)}</Text></View>
         <View style={s.grid}>
@@ -245,7 +257,7 @@ export function MarketplaceHome() {
           {items.length === 0 &&
             (filter === "all" ||
               ["formal", "hall", "mcr"].includes(filter)) && (
-              <Demo filter={filter} mobile={mobile} />
+              <Demo filter={filter} mobile={mobile} filterKeyword={applied.kw} filterUni={applied.uni} filterDateFrom={applied.from} filterDateTo={applied.to} />
             )}
         </View>
       </ScrollView>
@@ -259,7 +271,7 @@ function WebLanding(){const {language,text}=useAppLanguage();const {width}=useWi
   <View style={s.landingGrid}>{[["shield-checkmark-outline",text("Verified community","认证社区"),text("Register with any email; users who verify with a UK .ac.uk academic email receive a verified badge. Only verified Oxford or Cambridge accounts can publish Formal tickets — keeping the marketplace safe and trustworthy. Our verification will expand to enterprise and global educational emails in the future.","任意邮箱即可注册；使用英国 .ac.uk 高校邮箱认证后将获得认证标识。只有认证的牛津或剑桥账号才能发布 Formal 票，保障平台安全可信。认证范围今后将扩展到企业邮箱和全球教育邮箱。")],["swap-horizontal-outline",text("Ticket swaps","换票专区"),text("Find members open to exchanging one ticket for another, with any price difference agreed privately.","寻找愿意票换票的用户；是否补差价由双方私下商定。")],["language-outline",text("Chinese or English","中英文自动适配"),text("Write once in your app language. Optional text is translated for readers using the other language, with the original available.","只需使用当前界面语言填写一次；选填文字自动翻译给另一语言用户，并保留原文。")]].map(([icon,title,body])=><View key={String(title)} style={s.landingFeature}><Ionicons name={icon as any} size={27} color="#9A3412"/><Text style={s.landingFeatureTitle}>{title}</Text><Text style={s.landingFeatureText}>{body}</Text></View>)}</View>
   <View style={s.landingFooter}><Text style={s.landingFooterBrand}>FORMAL EXCHANGE</Text><Text style={s.landingFooterText}>{text("Support: support@formal-exchange.co.uk","支持邮箱：support@formal-exchange.co.uk")}</Text></View>
 </ScrollView>}
-function Demo({ filter, mobile }: { filter: string; mobile: boolean }) {
+function Demo({ filter, mobile, filterKeyword, filterUni, filterDateFrom, filterDateTo }: { filter: string; mobile: boolean; filterKeyword?: string; filterUni?: string; filterDateFrom?: string; filterDateTo?: string }) {
   const { language, text } = useAppLanguage();
   const demos = [
     {
@@ -361,14 +373,17 @@ function Demo({ filter, mobile }: { filter: string; mobile: boolean }) {
       dateLabel: "29 Sep 2026 · 19:15",
       image: require("../assets/demo-oxford-evening.jpg"),
     },
-  ].filter(
-    (demo) =>
-      new Date(demo.eventAt).getTime() > Date.now() &&
-      (filter === "all" ||
-        filter === "formal" ||
-        (filter === "hall" && demo.type === "Hall Formal") ||
-        (filter === "mcr" && demo.type === "MCR Guest Dinner")),
-  );
+  ].filter((demo) => {
+    if (new Date(demo.eventAt).getTime() <= Date.now()) return false;
+    if (!(filter === "all" || filter === "formal" || (filter === "hall" && demo.type === "Hall Formal") || (filter === "mcr" && demo.type === "MCR Guest Dinner"))) return false;
+    const kw = (filterKeyword ?? "").trim().toLocaleLowerCase();
+    if (kw && ![demo.college, demo.university, demo.type].join(" ").toLocaleLowerCase().includes(kw)) return false;
+    if (filterUni && filterUni !== "all" && demo.university !== filterUni) return false;
+    const d = demo.eventAt.slice(0, 10);
+    if (filterDateFrom && d < filterDateFrom) return false;
+    if (filterDateTo && d > filterDateTo) return false;
+    return true;
+  });
 
   const renderDemo = (demo: (typeof demos)[number], index: number) => (
         <Pressable
@@ -568,8 +583,13 @@ const s = StyleSheet.create({
   filterChipTextOn: { color: "#fff" },
   filterInputRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   filterInput: { flex: 1, height: 38, borderWidth: 1, borderColor: "#E2E8F0", borderRadius: 10, paddingHorizontal: 12, fontSize: 13, color: "#071B3A", backgroundColor: "#FAFAF8" },
-  filterClear: { flexDirection: "row", alignItems: "center", gap: 5, alignSelf: "flex-start", paddingVertical: 6, paddingHorizontal: 2 },
+  filterActions: { flexDirection: "row", alignItems: "center", gap: 12, marginTop: 2 },
+  filterApply: { flexDirection: "row", alignItems: "center", gap: 7, backgroundColor: "#071B3A", borderRadius: 14, paddingHorizontal: 18, paddingVertical: 10 },
+  filterApplyDisabled: { opacity: 0.4 },
+  filterApplyText: { color: "#fff", fontSize: 13, fontWeight: "900" },
+  filterClear: { flexDirection: "row", alignItems: "center", gap: 5, paddingVertical: 6, paddingHorizontal: 2 },
   filterClearText: { fontSize: 12, fontWeight: "800", color: "#9A3412" },
+  filterHint: { color: "#94A3B8", fontSize: 11, marginTop: 2 },
   h: { fontSize: 27, fontWeight: "900", color: "#071B3A" },
   hMobile: { fontSize: 23, marginTop: 3 },
   resultHeading: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 10, marginTop: 20, marginBottom: 10 },

@@ -411,6 +411,22 @@ export async function signInWithEmail(email: string, password: string) {
   return data;
 }
 
+export async function resetPasswordForEmail(email: string) {
+  const trimmed = email.trim().toLowerCase();
+  if (!trimmed || !trimmed.includes("@")) {
+    throw new Error("Please enter a valid email address.");
+  }
+  const { error } = await supabase.auth.resetPasswordForEmail(trimmed, {
+    redirectTo: getAuthRedirectUrl("/login"),
+  });
+  if (error) throw error;
+}
+
+export async function updatePassword(newPassword: string) {
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) throw error;
+}
+
 export async function signOut() {
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
