@@ -1,0 +1,57 @@
+{
+  "expo": {
+    "name": "Formal Exchange",
+    "slug": "formal-exchange",
+    "description": "A Formal-first Oxford and Cambridge marketplace for permitted listings, buyer requests, direct ticket swaps, travel tickets, ride-shares, college visits and in-app messaging.",
+    "version": "1.0.0",
+    "icon": "./src/assets/formal-exchange-shield.png",
+    "scheme": "formalexchange",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "plugins": [
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Formal Exchange to add optional dining hall, previous menu, event or listing photos. Never upload a ticket, QR code or personal document.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#071B3A"
+        }
+      ]
+    ],
+    "ios": {
+      "bundleIdentifier": "uk.co.formalexchange.app",
+      "buildNumber": "1",
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Add optional dining hall, previous menu, event or listing photos. Never upload a ticket, QR code or personal document."
+      }
+    },
+    "android": {
+      "package": "uk.co.formalexchange.app",
+      "versionCode": 1,
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO"
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./src/assets/formal-exchange-shield.png",
+        "backgroundColor": "#F7F4EE"
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "fea0df04-ff6b-4616-bbe7-eac86c060f61"
+      }
+    }
+  }
+}

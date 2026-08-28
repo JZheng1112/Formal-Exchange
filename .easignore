@@ -1,0 +1,13 @@
+.git
+.expo
+.eas-tool
+.node22-tool
+.codex-tmp
+.npm-cache
+.pnpm-store
+node_modules
+dist
+.env
+.env.*
+*.log
+coverage

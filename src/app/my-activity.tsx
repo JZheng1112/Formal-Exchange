@@ -1,0 +1,17 @@
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
+import { useEffect, useState } from "react";
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Conversation, getCurrentUser, loadMyConversations } from "../lib/formalApi";
+import { useAppLanguage } from "../lib/language";
+
+const C={bg:"#F7F4EE",navy:"#071B3A",muted:"#64748B",border:"#E2E8F0"};
+
+export default function MyActivity(){
+  const {text}=useAppLanguage();
+  const [rows,setRows]=useState<Conversation[]>([]),[loading,setLoading]=useState(true);
+  useEffect(()=>{(async()=>{const user=await getCurrentUser();if(!user){router.replace("/login");return;}const all=await loadMyConversations();setRows(all.filter(row=>row.buyer_user_id===user.id));})().catch(error=>Alert.alert(text("Could not load activity","无法加载记录"),error.message)).finally(()=>setLoading(false));},[]);
+  return <ScrollView style={s.page} contentContainerStyle={s.content}><View style={s.actions}><Pressable style={s.back} onPress={()=>router.replace("/my-profile")}><Ionicons name="chevron-back" size={19} color={C.navy}/><Text style={s.backText}>{text("My profile","我的资料")}</Text></Pressable><Pressable style={s.back} onPress={()=>router.replace("/marketplace")}><Ionicons name="home-outline" size={19} color={C.navy}/><Text style={s.backText}>{text("Home","主页")}</Text></Pressable></View><Text style={s.title}>{text("My buying activity","我的购买记录")}</Text><Text style={s.subtitle}>{text("These are the tickets you contacted a seller about. Because payment is arranged privately, this is an enquiry record rather than a platform payment receipt.","这里显示你曾联系卖家咨询的票务。由于付款由双方私下安排，这里记录的是购买咨询，不是平台付款凭证。")}</Text>{loading?<Text style={s.empty}>{text("Loading…","正在加载……")}</Text>:rows.length===0?<View style={s.emptyCard}><Text style={s.empty}>{text("No buying enquiries yet.","还没有购买咨询记录。")}</Text></View>:rows.map(row=><Pressable key={row.id} style={s.card} onPress={()=>router.push(`/messages?conversationId=${row.id}`)}><View style={s.cardIcon}><Ionicons name="ticket-outline" size={23} color="#123C69"/></View><View style={s.cardCopy}><Text style={s.cardTitle}>{row.subject}</Text><Text style={s.meta}>{new Date(row.created_at).toLocaleDateString()} · {row.seller_email}</Text><Text style={s.open}>{text("Open conversation →","打开对话 →")}</Text></View></Pressable>)}</ScrollView>;
+}
+
+const s=StyleSheet.create({page:{flex:1,backgroundColor:C.bg},content:{width:"100%",maxWidth:820,alignSelf:"center",padding:22,paddingTop:28,paddingBottom:70},actions:{flexDirection:"row",gap:8,flexWrap:"wrap"},back:{flexDirection:"row",alignItems:"center",gap:6,minHeight:42,paddingHorizontal:12,borderWidth:1,borderColor:C.border,backgroundColor:"#fff",borderRadius:14},backText:{color:C.navy,fontWeight:"900"},title:{color:C.navy,fontSize:34,fontWeight:"900",marginTop:20},subtitle:{color:C.muted,lineHeight:22,marginTop:8},emptyCard:{marginTop:18,backgroundColor:"#fff",borderWidth:1,borderColor:C.border,borderRadius:22,padding:30},empty:{color:C.muted,textAlign:"center",marginTop:18},card:{marginTop:12,flexDirection:"row",gap:12,backgroundColor:"#fff",borderWidth:1,borderColor:C.border,borderRadius:20,padding:16},cardIcon:{width:44,height:44,borderRadius:14,backgroundColor:"#EEF4FA",alignItems:"center",justifyContent:"center"},cardCopy:{flex:1,minWidth:0},cardTitle:{color:C.navy,fontSize:16,lineHeight:21,fontWeight:"900"},meta:{color:C.muted,fontSize:11,marginTop:5},open:{color:"#123C69",fontSize:12,fontWeight:"900",marginTop:8}});
