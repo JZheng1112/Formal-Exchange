@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
   gridMobile: { flexDirection: "column", gap: 12 },
   formCard: { flex: 1, minWidth: 340, backgroundColor: COLORS.card, borderRadius: 30, borderWidth: 1, borderColor: COLORS.border, padding: 24 },
   commentsCard: { flex: 1, minWidth: 340, backgroundColor: COLORS.card, borderRadius: 30, borderWidth: 1, borderColor: COLORS.border, padding: 24 },
-  cardMobile: { width: "100%", minWidth: 0, borderRadius: 20, padding: 16 },
+  cardMobile: { flex: 0, width: "100%", minWidth: 0, borderRadius: 20, padding: 16 },
   sectionTitle: { fontSize: 22, fontWeight: "900", color: COLORS.navy },
   sectionSubtitle: { marginTop: 6, marginBottom: 14, fontSize: 14, lineHeight: 22, color: COLORS.muted },
   label: { marginTop: 14, marginBottom: 8, fontSize: 13, fontWeight: "900", color: COLORS.muted },
