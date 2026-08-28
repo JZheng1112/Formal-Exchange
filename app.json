@@ -43,9 +43,15 @@
         "backgroundColor": "#F7F4EE"
       }
     },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/fea0df04-ff6b-4616-bbe7-eac86c060f61"
+    },
     "web": {
       "bundler": "metro",
-      "output": "static"
+      "output": "single"
     },
     "extra": {
       "router": {},
