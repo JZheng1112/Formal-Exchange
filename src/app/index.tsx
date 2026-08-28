@@ -54,13 +54,16 @@ export function MarketplaceHome() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [filterKeyword, setFilterKeyword] = useState("");
   const [filterUni, setFilterUni] = useState<"all" | "Oxford" | "Cambridge">("all");
-  const [filterDateFrom, setFilterDateFrom] = useState("");
-  const [filterDateTo, setFilterDateTo] = useState("");
-  const [applied, setApplied] = useState<{kw:string;uni:"all"|"Oxford"|"Cambridge";from:string;to:string}>({kw:"",uni:"all",from:"",to:""});
-  const hasUnapplied = filterKeyword !== applied.kw || filterUni !== applied.uni || filterDateFrom !== applied.from || filterDateTo !== applied.to;
-  const applyFilters = () => setApplied({kw:filterKeyword,uni:filterUni,from:filterDateFrom,to:filterDateTo});
-  const clearFilters = () => { setFilterKeyword(""); setFilterUni("all"); setFilterDateFrom(""); setFilterDateTo(""); setApplied({kw:"",uni:"all",from:"",to:""}); };
-  const hasActiveFilters = applied.kw || applied.uni !== "all" || applied.from || applied.to;
+  const [filterDate, setFilterDate] = useState("");
+  const [filterOrigin, setFilterOrigin] = useState("");
+  const [filterDest, setFilterDest] = useState("");
+  const [applied, setApplied] = useState<{kw:string;uni:"all"|"Oxford"|"Cambridge";date:string;origin:string;dest:string}>({kw:"",uni:"all",date:"",origin:"",dest:""});
+  const hasUnapplied = filterKeyword !== applied.kw || filterUni !== applied.uni || filterDate !== applied.date || filterOrigin !== applied.origin || filterDest !== applied.dest;
+  const applyFilters = () => setApplied({kw:filterKeyword,uni:filterUni,date:filterDate,origin:filterOrigin,dest:filterDest});
+  const clearFilters = () => { setFilterKeyword(""); setFilterUni("all"); setFilterDate(""); setFilterOrigin(""); setFilterDest(""); setApplied({kw:"",uni:"all",date:"",origin:"",dest:""}); };
+  const hasActiveFilters = applied.kw || applied.uni !== "all" || applied.date || applied.origin || applied.dest;
+  const showUni = filter === "all" || ["formal","hall","mcr"].includes(filter);
+  const showRoute = filter === "all" || ["coach","train","event"].includes(filter);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   useEffect(() => {
@@ -100,8 +103,11 @@ export function MarketplaceHome() {
     const kwFields = [x.colleges?.name, x.colleges?.university, x.ticket_type, x.formal_type, x.origin_name, x.destination_name, x.event_name, x.event_name_en, x.event_name_zh, x.campus].filter(Boolean).join(" ").toLocaleLowerCase();
     const inKeyword = !kw || kwFields.includes(kw);
     const eventDate = x.formal_date ?? x.arrival_date ?? "";
-    const inDateFrom = !applied.from || eventDate >= applied.from;
-    const inDateTo = !applied.to || eventDate <= applied.to;
+    const inDate = !applied.date || eventDate === applied.date;
+    const originLc = (x.origin_name ?? "").toLocaleLowerCase();
+    const destLc = (x.destination_name ?? "").toLocaleLowerCase();
+    const inOrigin = !applied.origin || originLc.includes(applied.origin.trim().toLocaleLowerCase());
+    const inDest = !applied.dest || destLc.includes(applied.dest.trim().toLocaleLowerCase());
     const searchable = [
       x.colleges?.name,
       x.colleges?.university,
@@ -116,7 +122,7 @@ export function MarketplaceHome() {
       .filter(Boolean)
       .join(" ")
       .toLocaleLowerCase();
-    return inMode && inCategory && inUni && inKeyword && inDateFrom && inDateTo && (!query || searchable.includes(query));
+    return inMode && inCategory && inUni && inKeyword && inDate && inOrigin && inDest && (!query || searchable.includes(query));
   });
   const chooseMode = (mode: "market" | "swap") => {
     setTradeMode(mode);
@@ -213,28 +219,36 @@ export function MarketplaceHome() {
             <Text style={s.filterLabel}>{text("Keyword","关键词")}</Text>
             <View style={s.filterInputRow}>
               <Ionicons name="search-outline" size={15} color="#94A3B8" />
-              <TextInput style={s.filterInput} placeholder={text("College, route, event…","学院、路线、活动…")} placeholderTextColor="#94A3B8" value={filterKeyword} onChangeText={setFilterKeyword} />
+              <TextInput style={s.filterInput} placeholder={text("College, route, event...","学院、路线、活动...")} placeholderTextColor="#94A3B8" value={filterKeyword} onChangeText={setFilterKeyword} />
             </View>
           </View>
-          {(filter === "all" || ["formal","hall","mcr"].includes(filter)) ? <View style={s.filterRow}>
+          {showUni ? <View style={s.filterRow}>
             <Text style={s.filterLabel}>{text("University","大学")}</Text>
             <View style={s.filterChips}>
               {(["all","Oxford","Cambridge"] as const).map(u => <Pressable key={u} style={[s.filterChip, filterUni === u && s.filterChipOn]} onPress={() => setFilterUni(u)}><Text style={[s.filterChipText, filterUni === u && s.filterChipTextOn]}>{u === "all" ? text("All","全部") : u}</Text></Pressable>)}
+            </View>
+          </View> : null}
+          {showRoute ? <View style={s.filterRow}>
+            <Text style={s.filterLabel}>{text("Origin","出发地")}</Text>
+            <View style={s.filterInputRow}>
+              <Ionicons name="location-outline" size={15} color="#94A3B8" />
+              <TextInput style={s.filterInput} placeholder={text("e.g. Oxford, Heathrow...","如 Oxford, Heathrow...")} placeholderTextColor="#94A3B8" value={filterOrigin} onChangeText={setFilterOrigin} />
+            </View>
+          </View> : null}
+          {showRoute ? <View style={s.filterRow}>
+            <Text style={s.filterLabel}>{text("Destination","目的地")}</Text>
+            <View style={s.filterInputRow}>
+              <Ionicons name="flag-outline" size={15} color="#94A3B8" />
+              <TextInput style={s.filterInput} placeholder={text("e.g. Cambridge, London...","如 Cambridge, London...")} placeholderTextColor="#94A3B8" value={filterDest} onChangeText={setFilterDest} />
             </View>
           </View> : null}
           <View style={s.filterRow}>
             <Text style={s.filterLabel}>{text("Date","日期")}</Text>
             <View style={s.filterInputRow}>
               <Ionicons name="calendar-outline" size={15} color="#94A3B8" />
-              {Platform.OS === "web" ? <>
-                <input type="date" value={filterDateFrom} onChange={(e: any) => setFilterDateFrom(e.target.value)} style={{flex:1,height:36,border:"1px solid #E2E8F0",borderRadius:10,paddingLeft:12,paddingRight:8,fontSize:13,color:"#071B3A",backgroundColor:"#FAFAF8",fontFamily:"inherit"} as any} />
-                <Text style={{color:"#94A3B8",fontSize:13}}>–</Text>
-                <input type="date" value={filterDateTo} onChange={(e: any) => setFilterDateTo(e.target.value)} style={{flex:1,height:36,border:"1px solid #E2E8F0",borderRadius:10,paddingLeft:12,paddingRight:8,fontSize:13,color:"#071B3A",backgroundColor:"#FAFAF8",fontFamily:"inherit"} as any} />
-              </> : <>
-                <TextInput style={s.filterInput} placeholder="YYYY-MM-DD" placeholderTextColor="#94A3B8" value={filterDateFrom} onChangeText={setFilterDateFrom} maxLength={10} />
-                <Text style={{color:"#94A3B8",fontSize:13}}>–</Text>
-                <TextInput style={s.filterInput} placeholder="YYYY-MM-DD" placeholderTextColor="#94A3B8" value={filterDateTo} onChangeText={setFilterDateTo} maxLength={10} />
-              </>}
+              {Platform.OS === "web"
+                ? <input type="date" value={filterDate} onChange={(e: any) => setFilterDate(e.target.value)} style={{flex:1,height:36,border:"1px solid #E2E8F0",borderRadius:10,paddingLeft:12,paddingRight:8,fontSize:13,color:"#071B3A",backgroundColor:"#FAFAF8",fontFamily:"inherit"} as any} />
+                : <TextInput style={s.filterInput} placeholder="YYYY-MM-DD" placeholderTextColor="#94A3B8" value={filterDate} onChangeText={setFilterDate} maxLength={10} />}
             </View>
           </View>
           <View style={s.filterActions}>
@@ -247,7 +261,7 @@ export function MarketplaceHome() {
               <Text style={s.filterClearText}>{text("Clear all","清除全部")}</Text>
             </Pressable> : null}
           </View>
-          {(filterKeyword || filterUni !== "all" || filterDateFrom || filterDateTo) ? <Text style={s.filterHint}>{text("Fill in only the fields you need, then tap Apply.","只需填写需要的字段，然后点「应用筛选」。")}</Text> : null}
+          {(filterKeyword || filterUni !== "all" || filterDate || filterOrigin || filterDest) ? <Text style={s.filterHint}>{text("Fill in only the fields you need, then tap Apply.","只需填写需要的字段，然后点「应用筛选」。")}</Text> : null}
         </View> : null}
         <View style={s.resultHeading}><Text style={[s.h, mobile && s.hMobile]}>{tradeMode === "swap" ? text("Tickets open to swaps", "愿意换票的帖子") : text("Latest seller listings", "最新卖家帖子")}</Text><Text style={s.resultCount}>{text(`${shown.length} listings`, `${shown.length} 条帖子`)}</Text></View>
         <View style={s.grid}>
@@ -257,7 +271,7 @@ export function MarketplaceHome() {
           {items.length === 0 &&
             (filter === "all" ||
               ["formal", "hall", "mcr"].includes(filter)) && (
-              <Demo filter={filter} mobile={mobile} filterKeyword={applied.kw} filterUni={applied.uni} filterDateFrom={applied.from} filterDateTo={applied.to} />
+              <Demo filter={filter} mobile={mobile} filterKeyword={applied.kw} filterUni={applied.uni} filterDate={applied.date} />
             )}
         </View>
       </ScrollView>
@@ -271,7 +285,7 @@ function WebLanding(){const {language,text}=useAppLanguage();const {width}=useWi
   <View style={s.landingGrid}>{[["shield-checkmark-outline",text("Verified community","认证社区"),text("Register with any email; users who verify with a UK .ac.uk academic email receive a verified badge. Only verified Oxford or Cambridge accounts can publish Formal tickets — keeping the marketplace safe and trustworthy. Our verification will expand to enterprise and global educational emails in the future.","任意邮箱即可注册；使用英国 .ac.uk 高校邮箱认证后将获得认证标识。只有认证的牛津或剑桥账号才能发布 Formal 票，保障平台安全可信。认证范围今后将扩展到企业邮箱和全球教育邮箱。")],["swap-horizontal-outline",text("Ticket swaps","换票专区"),text("Find members open to exchanging one ticket for another, with any price difference agreed privately.","寻找愿意票换票的用户；是否补差价由双方私下商定。")],["language-outline",text("Chinese or English","中英文自动适配"),text("Write once in your app language. Optional text is translated for readers using the other language, with the original available.","只需使用当前界面语言填写一次；选填文字自动翻译给另一语言用户，并保留原文。")]].map(([icon,title,body])=><View key={String(title)} style={s.landingFeature}><Ionicons name={icon as any} size={27} color="#9A3412"/><Text style={s.landingFeatureTitle}>{title}</Text><Text style={s.landingFeatureText}>{body}</Text></View>)}</View>
   <View style={s.landingFooter}><Text style={s.landingFooterBrand}>FORMAL EXCHANGE</Text><Text style={s.landingFooterText}>{text("Support: support@formal-exchange.co.uk","支持邮箱：support@formal-exchange.co.uk")}</Text></View>
 </ScrollView>}
-function Demo({ filter, mobile, filterKeyword, filterUni, filterDateFrom, filterDateTo }: { filter: string; mobile: boolean; filterKeyword?: string; filterUni?: string; filterDateFrom?: string; filterDateTo?: string }) {
+function Demo({ filter, mobile, filterKeyword, filterUni, filterDate }: { filter: string; mobile: boolean; filterKeyword?: string; filterUni?: string; filterDate?: string }) {
   const { language, text } = useAppLanguage();
   const demos = [
     {
@@ -380,8 +394,7 @@ function Demo({ filter, mobile, filterKeyword, filterUni, filterDateFrom, filter
     if (kw && ![demo.college, demo.university, demo.type].join(" ").toLocaleLowerCase().includes(kw)) return false;
     if (filterUni && filterUni !== "all" && demo.university !== filterUni) return false;
     const d = demo.eventAt.slice(0, 10);
-    if (filterDateFrom && d < filterDateFrom) return false;
-    if (filterDateTo && d > filterDateTo) return false;
+    if (filterDate && d !== filterDate) return false;
     return true;
   });
 
