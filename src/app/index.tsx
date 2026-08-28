@@ -51,6 +51,13 @@ export function MarketplaceHome() {
   const [filter, setFilter] = useState("all");
   const [tradeMode, setTradeMode] = useState<"market" | "swap">("market");
   const [categoriesExpanded, setCategoriesExpanded] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [filterUni, setFilterUni] = useState<"all" | "Oxford" | "Cambridge">("all");
+  const [filterCollege, setFilterCollege] = useState("");
+  const [filterOrigin, setFilterOrigin] = useState("");
+  const [filterDest, setFilterDest] = useState("");
+  const [filterDateFrom, setFilterDateFrom] = useState("");
+  const [filterDateTo, setFilterDateTo] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   useEffect(() => {
@@ -83,6 +90,17 @@ export function MarketplaceHome() {
       (filter === "coach" && ["Coach", "Coach ticket"].includes(x.ticket_type ?? "")) ||
       (filter === "train" && ["Train", "Train ticket"].includes(x.ticket_type ?? "")) ||
       (filter === "event" && x.listing_category === "event");
+    const uni = x.campus ?? x.colleges?.university;
+    const inUni = filterUni === "all" || uni === filterUni;
+    const collegeName = (x.colleges?.name ?? "").toLocaleLowerCase();
+    const inCollege = !filterCollege || collegeName.includes(filterCollege.toLocaleLowerCase());
+    const originLower = (x.origin_name ?? "").toLocaleLowerCase();
+    const destLower = (x.destination_name ?? "").toLocaleLowerCase();
+    const inOrigin = !filterOrigin || originLower.includes(filterOrigin.toLocaleLowerCase());
+    const inDest = !filterDest || destLower.includes(filterDest.toLocaleLowerCase());
+    const eventDate = x.formal_date ?? x.arrival_date ?? "";
+    const inDateFrom = !filterDateFrom || eventDate >= filterDateFrom;
+    const inDateTo = !filterDateTo || eventDate <= filterDateTo;
     const searchable = [
       x.colleges?.name,
       x.colleges?.university,
@@ -97,7 +115,7 @@ export function MarketplaceHome() {
       .filter(Boolean)
       .join(" ")
       .toLocaleLowerCase();
-    return inMode && inCategory && (!query || searchable.includes(query));
+    return inMode && inCategory && inUni && inCollege && inOrigin && inDest && inDateFrom && inDateTo && (!query || searchable.includes(query));
   });
   const chooseMode = (mode: "market" | "swap") => {
     setTradeMode(mode);
@@ -183,6 +201,49 @@ export function MarketplaceHome() {
           </View> : null}
         </> : <View style={s.filters}>{F.map((entry) => categoryButton(entry))}</View>}
         <Text style={s.formalHint}>{text("Hall Formal and MCR Guest Dinner are types of Formal, not separate ticket categories.", "Hall Formal 和 MCR Guest Dinner 都是 Formal 的细分类，并不是与 Formal 并列的三种票。")}</Text>
+        <Pressable style={s.filterToggle} onPress={() => setFiltersOpen(v => !v)}>
+          <Ionicons name="options-outline" size={16} color="#071B3A" />
+          <Text style={s.filterToggleText}>{text("Filters","筛选")}</Text>
+          {(filterUni !== "all" || filterCollege || filterOrigin || filterDest || filterDateFrom || filterDateTo) ? <View style={s.filterDot} /> : null}
+          <Ionicons name={filtersOpen ? "chevron-up" : "chevron-down"} size={16} color="#64748B" />
+        </Pressable>
+        {filtersOpen ? <View style={s.filterBar}>
+          <View style={s.filterRow}>
+            <Text style={s.filterLabel}>{text("University","大学")}</Text>
+            <View style={s.filterChips}>
+              {(["all","Oxford","Cambridge"] as const).map(u => <Pressable key={u} style={[s.filterChip, filterUni === u && s.filterChipOn]} onPress={() => setFilterUni(u)}><Text style={[s.filterChipText, filterUni === u && s.filterChipTextOn]}>{u === "all" ? text("All","全部") : u}</Text></Pressable>)}
+            </View>
+          </View>
+          <View style={s.filterRow}>
+            <Text style={s.filterLabel}>{text("College","学院")}</Text>
+            <View style={s.filterInputRow}>
+              <Ionicons name="school-outline" size={15} color="#94A3B8" />
+              <TextInput style={s.filterInput} placeholder={text("College name…","学院名称…")} placeholderTextColor="#94A3B8" value={filterCollege} onChangeText={setFilterCollege} />
+            </View>
+          </View>
+          <View style={s.filterDivider} />
+          {(filter === "all" || ["coach","train"].includes(filter)) ? <View style={s.filterRow}>
+            <Text style={s.filterLabel}>{text("Route","路线")}</Text>
+            <View style={s.filterInputRow}>
+              <TextInput style={s.filterInput} placeholder={text("From…","出发地…")} placeholderTextColor="#94A3B8" value={filterOrigin} onChangeText={setFilterOrigin} />
+              <Ionicons name="arrow-forward" size={14} color="#94A3B8" />
+              <TextInput style={s.filterInput} placeholder={text("To…","目的地…")} placeholderTextColor="#94A3B8" value={filterDest} onChangeText={setFilterDest} />
+            </View>
+          </View> : null}
+          <View style={s.filterRow}>
+            <Text style={s.filterLabel}>{text("Date range","日期范围")}</Text>
+            <View style={s.filterInputRow}>
+              <Ionicons name="calendar-outline" size={15} color="#94A3B8" />
+              <TextInput style={s.filterInput} placeholder="YYYY-MM-DD" placeholderTextColor="#94A3B8" value={filterDateFrom} onChangeText={setFilterDateFrom} maxLength={10} />
+              <Text style={{color:"#94A3B8",fontSize:13}}>–</Text>
+              <TextInput style={s.filterInput} placeholder="YYYY-MM-DD" placeholderTextColor="#94A3B8" value={filterDateTo} onChangeText={setFilterDateTo} maxLength={10} />
+            </View>
+          </View>
+          {(filterUni !== "all" || filterCollege || filterOrigin || filterDest || filterDateFrom || filterDateTo) ? <Pressable style={s.filterClear} onPress={() => { setFilterUni("all"); setFilterCollege(""); setFilterOrigin(""); setFilterDest(""); setFilterDateFrom(""); setFilterDateTo(""); }}>
+            <Ionicons name="close-circle-outline" size={14} color="#9A3412" />
+            <Text style={s.filterClearText}>{text("Clear all filters","清除所有筛选")}</Text>
+          </Pressable> : null}
+        </View> : null}
         <View style={s.resultHeading}><Text style={[s.h, mobile && s.hMobile]}>{tradeMode === "swap" ? text("Tickets open to swaps", "愿意换票的帖子") : text("Latest seller listings", "最新卖家帖子")}</Text><Text style={s.resultCount}>{text(`${shown.length} listings`, `${shown.length} 条帖子`)}</Text></View>
         <View style={s.grid}>
           {shown.map((x) => (
@@ -500,7 +561,23 @@ const s = StyleSheet.create({
   },
   on: { backgroundColor: "#071B3A" },
   pt: { fontSize: 12, lineHeight: 15, textAlign: "center", fontWeight: "900", color: "#071B3A" },
-  formalHint: { marginTop: -7, marginBottom: 13, color: "#64748B", fontSize: 11, lineHeight: 16 },
+  formalHint: { marginTop: 6, marginBottom: 8, color: "#64748B", fontSize: 11, lineHeight: 16 },
+  filterToggle: { flexDirection: "row", alignItems: "center", gap: 7, alignSelf: "flex-start", paddingVertical: 9, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1, borderColor: "#E2E8F0", backgroundColor: "#fff", marginBottom: 10 },
+  filterToggleText: { fontSize: 13, fontWeight: "800", color: "#071B3A" },
+  filterDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: "#9A3412" },
+  filterBar: { backgroundColor: "#fff", borderWidth: 1, borderColor: "#E2E8F0", borderRadius: 16, padding: 16, marginBottom: 12, gap: 14 },
+  filterRow: { gap: 7 },
+  filterLabel: { fontSize: 11, fontWeight: "900", color: "#64748B", letterSpacing: 0.6, textTransform: "uppercase" as const, marginBottom: 1 },
+  filterChips: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
+  filterChip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1, borderColor: "#E2E8F0", backgroundColor: "#F7F4EE" },
+  filterChipOn: { backgroundColor: "#071B3A", borderColor: "#071B3A" },
+  filterChipText: { fontSize: 12, fontWeight: "800", color: "#071B3A" },
+  filterChipTextOn: { color: "#fff" },
+  filterInputRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  filterInput: { flex: 1, height: 38, borderWidth: 1, borderColor: "#E2E8F0", borderRadius: 10, paddingHorizontal: 12, fontSize: 13, color: "#071B3A", backgroundColor: "#FAFAF8" },
+  filterDivider: { height: 1, backgroundColor: "#E2E8F0", marginVertical: 2 },
+  filterClear: { flexDirection: "row", alignItems: "center", gap: 5, alignSelf: "flex-start", paddingVertical: 6, paddingHorizontal: 2 },
+  filterClearText: { fontSize: 12, fontWeight: "800", color: "#9A3412" },
   h: { fontSize: 27, fontWeight: "900", color: "#071B3A" },
   hMobile: { fontSize: 23, marginTop: 3 },
   resultHeading: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 10, marginTop: 20, marginBottom: 10 },
