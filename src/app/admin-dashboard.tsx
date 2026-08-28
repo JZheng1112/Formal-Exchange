@@ -159,7 +159,7 @@ export default function AdminDashboard() {
         {data && tab === "Buyer requests" && <BuyerRequests rows={filter(data.buyer_posts)} note={note} busy={busy} run={run} confirmRun={confirmRun}/>} 
         {data && tab === "Users" && <Users rows={filter(data.profiles)} note={note} busy={busy} run={run} confirmRun={confirmRun} currentAdminId={currentAdminId}/>} 
         {data && tab === "Feedback" && <Feedback rows={filter(data.feedback)} note={note} busy={busy} run={run}/>} 
-        {data && tab === "Colleges" && <Colleges data={data} rows={filter(data.ratings)} busy={busy} run={run} confirmRun={confirmRun}/>} 
+        {data && tab === "Colleges" && <Colleges data={data} rows={filter(data.ratings)} busy={busy} run={run} confirmRun={confirmRun} mobile={mobile}/>}
         {data && tab === "System" && <System data={data}/>} 
 
         <Text style={s.footer}>Last refreshed {formatDate(data?.generated_at)} · Pull down or tap Refresh for current production data.</Text>
@@ -286,9 +286,9 @@ function Feedback({ rows, note, busy, run }: ListProps) {
   </Panel>;
 }
 
-function Colleges({ data, rows, busy, run, confirmRun }: { data: AdminSnapshot; rows: Row[]; busy: string; run: Run; confirmRun: ConfirmRun }) {
+function Colleges({ data, rows, busy, run, confirmRun, mobile }: { data: AdminSnapshot; rows: Row[]; busy: string; run: Run; confirmRun: ConfirmRun; mobile: boolean }) {
   return <>
-    <View style={[s.twoCol, s.alignStart]}>
+    <View style={[s.twoCol, s.alignStart, mobile && s.oneCol]}>
       <Panel title="College ratings" subtitle="Aggregated student ratings, not an official university ranking.">
         {data.rating_summary.length ? data.rating_summary.map((row) => <View style={s.rankRow} key={row.college_id}><View style={s.rankName}><Text style={s.rankTitle}>{row.college_name}</Text><Text style={s.cardMeta}>{row.university} · {row.rating_count} ratings</Text></View><Text style={s.starValue}>★ {row.average_score}</Text></View>) : <Empty text="No college ratings yet."/>}
       </Panel>
