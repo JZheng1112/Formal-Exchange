@@ -121,13 +121,13 @@ drop policy if exists "Users read own conversations" on public.conversations;
 create policy "Users read own conversations"
 on public.conversations for select
 to authenticated
-using (user_a = auth.uid() or user_b = auth.uid());
+using (buyer_user_id = auth.uid() or seller_user_id = auth.uid());
 
 drop policy if exists "Users insert conversations" on public.conversations;
 create policy "Users insert conversations"
 on public.conversations for insert
 to authenticated
-with check (user_a = auth.uid() or user_b = auth.uid());
+with check (buyer_user_id = auth.uid() or seller_user_id = auth.uid());
 
 -- ==================== messages ====================
 alter table public.messages enable row level security;
@@ -140,7 +140,7 @@ using (
   exists (
     select 1 from public.conversations c
     where c.id = conversation_id
-      and (c.user_a = auth.uid() or c.user_b = auth.uid())
+      and (c.buyer_user_id = auth.uid() or c.seller_user_id = auth.uid())
   )
 );
 
@@ -148,7 +148,7 @@ drop policy if exists "Users insert own messages" on public.messages;
 create policy "Users insert own messages"
 on public.messages for insert
 to authenticated
-with check (sender_id = auth.uid());
+with check (sender_user_id = auth.uid());
 
 -- ==================== listing_reports ====================
 alter table public.listing_reports enable row level security;
@@ -187,9 +187,13 @@ to authenticated
 with check (true);
 
 -- ==================== public_feedback_comments ====================
--- This table may not exist yet; guard with DO block
+-- Skip if it's a view (views don't support RLS)
 do $$ begin
-  if exists (select 1 from information_schema.tables where table_schema = 'public' and table_name = 'public_feedback_comments') then
+  if exists (
+    select 1 from information_schema.tables
+    where table_schema = 'public' and table_name = 'public_feedback_comments'
+      and table_type = 'BASE TABLE'
+  ) then
     alter table public.public_feedback_comments enable row level security;
     execute 'drop policy if exists "Public read feedback comments" on public.public_feedback_comments';
     execute 'create policy "Public read feedback comments" on public.public_feedback_comments for select to public using (true)';
