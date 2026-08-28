@@ -52,10 +52,8 @@ export function MarketplaceHome() {
   const [tradeMode, setTradeMode] = useState<"market" | "swap">("market");
   const [categoriesExpanded, setCategoriesExpanded] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [filterKeyword, setFilterKeyword] = useState("");
   const [filterUni, setFilterUni] = useState<"all" | "Oxford" | "Cambridge">("all");
-  const [filterCollege, setFilterCollege] = useState("");
-  const [filterOrigin, setFilterOrigin] = useState("");
-  const [filterDest, setFilterDest] = useState("");
   const [filterDateFrom, setFilterDateFrom] = useState("");
   const [filterDateTo, setFilterDateTo] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
@@ -90,14 +88,12 @@ export function MarketplaceHome() {
       (filter === "coach" && ["Coach", "Coach ticket"].includes(x.ticket_type ?? "")) ||
       (filter === "train" && ["Train", "Train ticket"].includes(x.ticket_type ?? "")) ||
       (filter === "event" && x.listing_category === "event");
+    const isFormal = (x.listing_category ?? "formal") === "formal";
     const uni = x.campus ?? x.colleges?.university;
-    const inUni = filterUni === "all" || uni === filterUni;
-    const collegeName = (x.colleges?.name ?? "").toLocaleLowerCase();
-    const inCollege = !filterCollege || collegeName.includes(filterCollege.toLocaleLowerCase());
-    const originLower = (x.origin_name ?? "").toLocaleLowerCase();
-    const destLower = (x.destination_name ?? "").toLocaleLowerCase();
-    const inOrigin = !filterOrigin || originLower.includes(filterOrigin.toLocaleLowerCase());
-    const inDest = !filterDest || destLower.includes(filterDest.toLocaleLowerCase());
+    const inUni = !isFormal || filterUni === "all" || uni === filterUni;
+    const kw = filterKeyword.trim().toLocaleLowerCase();
+    const kwFields = [x.colleges?.name, x.colleges?.university, x.ticket_type, x.formal_type, x.origin_name, x.destination_name, x.event_name, x.event_name_en, x.event_name_zh, x.campus].filter(Boolean).join(" ").toLocaleLowerCase();
+    const inKeyword = !kw || kwFields.includes(kw);
     const eventDate = x.formal_date ?? x.arrival_date ?? "";
     const inDateFrom = !filterDateFrom || eventDate >= filterDateFrom;
     const inDateTo = !filterDateTo || eventDate <= filterDateTo;
@@ -115,7 +111,7 @@ export function MarketplaceHome() {
       .filter(Boolean)
       .join(" ")
       .toLocaleLowerCase();
-    return inMode && inCategory && inUni && inCollege && inOrigin && inDest && inDateFrom && inDateTo && (!query || searchable.includes(query));
+    return inMode && inCategory && inUni && inKeyword && inDateFrom && inDateTo && (!query || searchable.includes(query));
   });
   const chooseMode = (mode: "market" | "swap") => {
     setTradeMode(mode);
@@ -204,42 +200,39 @@ export function MarketplaceHome() {
         <Pressable style={s.filterToggle} onPress={() => setFiltersOpen(v => !v)}>
           <Ionicons name="options-outline" size={16} color="#071B3A" />
           <Text style={s.filterToggleText}>{text("Filters","筛选")}</Text>
-          {(filterUni !== "all" || filterCollege || filterOrigin || filterDest || filterDateFrom || filterDateTo) ? <View style={s.filterDot} /> : null}
+          {(filterUni !== "all" || filterKeyword || filterDateFrom || filterDateTo) ? <View style={s.filterDot} /> : null}
           <Ionicons name={filtersOpen ? "chevron-up" : "chevron-down"} size={16} color="#64748B" />
         </Pressable>
         {filtersOpen ? <View style={s.filterBar}>
           <View style={s.filterRow}>
+            <Text style={s.filterLabel}>{text("Keyword","关键词")}</Text>
+            <View style={s.filterInputRow}>
+              <Ionicons name="search-outline" size={15} color="#94A3B8" />
+              <TextInput style={s.filterInput} placeholder={text("College, route, event…","学院、路线、活动…")} placeholderTextColor="#94A3B8" value={filterKeyword} onChangeText={setFilterKeyword} />
+            </View>
+          </View>
+          {(filter === "all" || ["formal","hall","mcr"].includes(filter)) ? <View style={s.filterRow}>
             <Text style={s.filterLabel}>{text("University","大学")}</Text>
             <View style={s.filterChips}>
               {(["all","Oxford","Cambridge"] as const).map(u => <Pressable key={u} style={[s.filterChip, filterUni === u && s.filterChipOn]} onPress={() => setFilterUni(u)}><Text style={[s.filterChipText, filterUni === u && s.filterChipTextOn]}>{u === "all" ? text("All","全部") : u}</Text></Pressable>)}
             </View>
-          </View>
-          <View style={s.filterRow}>
-            <Text style={s.filterLabel}>{text("College","学院")}</Text>
-            <View style={s.filterInputRow}>
-              <Ionicons name="school-outline" size={15} color="#94A3B8" />
-              <TextInput style={s.filterInput} placeholder={text("College name…","学院名称…")} placeholderTextColor="#94A3B8" value={filterCollege} onChangeText={setFilterCollege} />
-            </View>
-          </View>
-          <View style={s.filterDivider} />
-          {(filter === "all" || ["coach","train"].includes(filter)) ? <View style={s.filterRow}>
-            <Text style={s.filterLabel}>{text("Route","路线")}</Text>
-            <View style={s.filterInputRow}>
-              <TextInput style={s.filterInput} placeholder={text("From…","出发地…")} placeholderTextColor="#94A3B8" value={filterOrigin} onChangeText={setFilterOrigin} />
-              <Ionicons name="arrow-forward" size={14} color="#94A3B8" />
-              <TextInput style={s.filterInput} placeholder={text("To…","目的地…")} placeholderTextColor="#94A3B8" value={filterDest} onChangeText={setFilterDest} />
-            </View>
           </View> : null}
           <View style={s.filterRow}>
-            <Text style={s.filterLabel}>{text("Date range","日期范围")}</Text>
+            <Text style={s.filterLabel}>{text("Date","日期")}</Text>
             <View style={s.filterInputRow}>
               <Ionicons name="calendar-outline" size={15} color="#94A3B8" />
-              <TextInput style={s.filterInput} placeholder="YYYY-MM-DD" placeholderTextColor="#94A3B8" value={filterDateFrom} onChangeText={setFilterDateFrom} maxLength={10} />
-              <Text style={{color:"#94A3B8",fontSize:13}}>–</Text>
-              <TextInput style={s.filterInput} placeholder="YYYY-MM-DD" placeholderTextColor="#94A3B8" value={filterDateTo} onChangeText={setFilterDateTo} maxLength={10} />
+              {Platform.OS === "web" ? <>
+                <input type="date" value={filterDateFrom} onChange={(e: any) => setFilterDateFrom(e.target.value)} style={{flex:1,height:36,border:"1px solid #E2E8F0",borderRadius:10,paddingLeft:12,paddingRight:8,fontSize:13,color:"#071B3A",backgroundColor:"#FAFAF8",fontFamily:"inherit"} as any} />
+                <Text style={{color:"#94A3B8",fontSize:13}}>–</Text>
+                <input type="date" value={filterDateTo} onChange={(e: any) => setFilterDateTo(e.target.value)} style={{flex:1,height:36,border:"1px solid #E2E8F0",borderRadius:10,paddingLeft:12,paddingRight:8,fontSize:13,color:"#071B3A",backgroundColor:"#FAFAF8",fontFamily:"inherit"} as any} />
+              </> : <>
+                <TextInput style={s.filterInput} placeholder="YYYY-MM-DD" placeholderTextColor="#94A3B8" value={filterDateFrom} onChangeText={setFilterDateFrom} maxLength={10} />
+                <Text style={{color:"#94A3B8",fontSize:13}}>–</Text>
+                <TextInput style={s.filterInput} placeholder="YYYY-MM-DD" placeholderTextColor="#94A3B8" value={filterDateTo} onChangeText={setFilterDateTo} maxLength={10} />
+              </>}
             </View>
           </View>
-          {(filterUni !== "all" || filterCollege || filterOrigin || filterDest || filterDateFrom || filterDateTo) ? <Pressable style={s.filterClear} onPress={() => { setFilterUni("all"); setFilterCollege(""); setFilterOrigin(""); setFilterDest(""); setFilterDateFrom(""); setFilterDateTo(""); }}>
+          {(filterUni !== "all" || filterKeyword || filterDateFrom || filterDateTo) ? <Pressable style={s.filterClear} onPress={() => { setFilterUni("all"); setFilterKeyword(""); setFilterDateFrom(""); setFilterDateTo(""); }}>
             <Ionicons name="close-circle-outline" size={14} color="#9A3412" />
             <Text style={s.filterClearText}>{text("Clear all filters","清除所有筛选")}</Text>
           </Pressable> : null}
@@ -575,7 +568,6 @@ const s = StyleSheet.create({
   filterChipTextOn: { color: "#fff" },
   filterInputRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   filterInput: { flex: 1, height: 38, borderWidth: 1, borderColor: "#E2E8F0", borderRadius: 10, paddingHorizontal: 12, fontSize: 13, color: "#071B3A", backgroundColor: "#FAFAF8" },
-  filterDivider: { height: 1, backgroundColor: "#E2E8F0", marginVertical: 2 },
   filterClear: { flexDirection: "row", alignItems: "center", gap: 5, alignSelf: "flex-start", paddingVertical: 6, paddingHorizontal: 2 },
   filterClearText: { fontSize: 12, fontWeight: "800", color: "#9A3412" },
   h: { fontSize: 27, fontWeight: "900", color: "#071B3A" },
