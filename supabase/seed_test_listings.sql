@@ -21,8 +21,22 @@ begin
   select id into v_ox_college from public.colleges where university = 'Oxford' limit 1;
   select id into v_cam_college from public.colleges where university = 'Cambridge' limit 1;
 
-  -- Temporarily disable the guard trigger (it needs auth.uid() which is null in SQL editor)
-  alter table public.ticket_listings disable trigger guard_ticket_listing_write;
+  -- Disable user triggers on ticket_listings (guard + price validation)
+  alter table public.ticket_listings disable trigger user;
+
+  -- Clean up any partial inserts from previous runs
+  delete from public.ticket_listings
+    where seller_user_id = v_user_id
+      and notes_en in (
+        '3-course dinner with wine. Beautiful candlelit hall. Vegetarian and vegan options available.',
+        'Special Guest Night with 4-course meal and port. Halal, vegetarian, and gluten-free options available upon request.',
+        'Return ticket, valid for any Oxford Tube service. Departs every 15 mins.',
+        'Off-peak single. Must travel on specified train. e-ticket will be transferred.',
+        'Dress code: smart casual. Bring your university card for entry.',
+        'Open to all freshers and returning students. Black tie dress code.',
+        'Departing around 6am. Flexible by 30 minutes. WhatsApp group will be created for coordination.',
+        'Leaving at 3pm sharp. Message me to coordinate pickup location.'
+      );
 
   -- ==================== FORMAL LISTINGS ====================
 
@@ -48,10 +62,10 @@ begin
     '2026-09-27', '19:30', true,
     2, 1, 2, 1,
     3, true, true,
-    15.00, 18.00,
+    14.50, 17.50,
     12.50, 15.00,
-    12.50, 15.00,
-    true, true, false,
+    12.50, 14.50,
+    true, true, true,
     'University or government photo ID', 'University card', true,
     true, true, false, false,
     '3-course dinner with wine. Beautiful candlelit hall. Vegetarian and vegan options available.',
@@ -82,10 +96,10 @@ begin
     '2026-10-02', '19:00', true,
     1, 2, 1, 2,
     3, false, false,
-    22.00, 25.00,
+    20.00, 23.00,
     18.00, 20.00,
-    18.00, 22.00,
-    true, false, false,
+    18.00, 20.00,
+    true, true, true,
     'Must be accompanied by host at all times', 'University card', true,
     false, true, true, true,
     'Special Guest Night with 4-course meal and port. Halal, vegetarian, and gluten-free options available upon request.',
@@ -162,7 +176,7 @@ begin
 
   -- ==================== EVENT LISTINGS ====================
 
-  -- 5. Event (admission): Oxford College Ball preview
+  -- 5. Event (admission): Oxford Welcome Drinks
   insert into public.ticket_listings (
     seller_user_id, seller_contact_email, listing_category, content_language,
     ticket_type, campus, college_id, formal_type, dress_code,
@@ -194,7 +208,7 @@ begin
     false
   );
 
-  -- 6. Event (admission): Cambridge Freshers Fair ticket
+  -- 6. Event (admission): Cambridge Freshers Gala
   insert into public.ticket_listings (
     seller_user_id, seller_contact_email, listing_category, content_language,
     ticket_type, campus, college_id, formal_type, dress_code,
@@ -296,8 +310,8 @@ begin
     false
   );
 
-  -- Re-enable the guard trigger
-  alter table public.ticket_listings enable trigger guard_ticket_listing_write;
+  -- Re-enable user triggers
+  alter table public.ticket_listings enable trigger user;
 
   raise notice 'Successfully inserted 8 test listings for %', v_email;
 end $$;
