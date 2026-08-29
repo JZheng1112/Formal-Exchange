@@ -17,9 +17,12 @@ import {
 import { Image } from "expo-image";
 
 import {
+  BlockedUser,
   College,
   Profile,
   confirmVerificationCode,
+  loadBlockedUsers,
+  unblockUser,
   deleteMyAccount,
   isAcUkEmail,
   isOxbridgeEmail,
@@ -57,6 +60,7 @@ export default function MyProfileScreen() {
   const [editing, setEditing] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [verifyOpen, setVerifyOpen] = useState(false);
+  const [blocked, setBlocked] = useState<BlockedUser[]>([]);
 
   const [fullName, setFullName] = useState("");
   const [collegeId, setCollegeId] = useState("");
@@ -73,12 +77,14 @@ export default function MyProfileScreen() {
   async function refresh() {
     setLoading(true);
     try {
-      const [profileData, collegeData] = await Promise.all([
+      const [profileData, collegeData, blockedData] = await Promise.all([
         loadMyProfile(),
         loadColleges(),
+        loadBlockedUsers().catch(() => [] as BlockedUser[]),
       ]);
       setProfile(profileData);
       setColleges(collegeData);
+      setBlocked(blockedData);
       setFullName(profileData?.full_name ?? "");
       setCollegeId(profileData?.college_id ?? "");
       setContactEmail(profileData?.contact_email ?? "");
@@ -161,6 +167,28 @@ export default function MyProfileScreen() {
     } finally {
       setVerifySending(false);
     }
+  }
+
+  async function handleUnblock(entry: BlockedUser) {
+    const label = entry.profiles?.full_name || entry.profiles?.email || text("this user", "该用户");
+    Alert.alert(
+      text("Unblock?", "取消拉黑？"),
+      text(`${label} will be able to message you again, and you will see each other's listings.`, `${label} 将可以再次向你发送消息，你们也会重新看到彼此的帖子。`),
+      [
+        { text: text("Cancel", "取消"), style: "cancel" },
+        {
+          text: text("Unblock", "取消拉黑"),
+          onPress: async () => {
+            try {
+              await unblockUser(entry.blocked_id);
+              await refresh();
+            } catch (error: any) {
+              Alert.alert(text("Could not unblock", "操作失败"), error?.message ?? text("Please try again.", "请重试。"));
+            }
+          },
+        },
+      ]
+    );
   }
 
   async function logout() {
@@ -287,6 +315,34 @@ export default function MyProfileScreen() {
       )}
 
       {/* Profile details card */}
+      {blocked.length > 0 && (
+        <View style={s.card}>
+          <View style={s.cardHeader}>
+            <Text style={s.sectionTitle}>{text("Blocked users", "已拉黑的用户")}</Text>
+            <View style={s.permChip}><Text style={s.permText}>{blocked.length}</Text></View>
+          </View>
+          <Text style={s.blockedNote}>
+            {text("They cannot message you and you do not see each other's listings. They are not told about this.", "对方无法向你发送消息，你们也看不到彼此的帖子。对方不会收到任何通知。")}
+          </Text>
+          {blocked.map((entry) => (
+            <View key={entry.id} style={s.blockedRow}>
+              <View style={s.blockedIcon}><Ionicons name="hand-left-outline" size={17} color="#9A3412" /></View>
+              <View style={s.blockedCopy}>
+                <Text style={s.blockedName} numberOfLines={1}>
+                  {entry.profiles?.full_name || entry.profiles?.email || text("Removed account", "已注销账号")}
+                </Text>
+                <Text style={s.blockedDate}>
+                  {new Date(entry.created_at).toLocaleDateString(language === "zh" ? "zh-CN" : "en-GB", { year: "numeric", month: "short", day: "numeric" })}
+                </Text>
+              </View>
+              <Pressable style={s.unblockBtn} onPress={() => handleUnblock(entry)}>
+                <Text style={s.unblockBtnText}>{text("Unblock", "取消拉黑")}</Text>
+              </Pressable>
+            </View>
+          ))}
+        </View>
+      )}
+
       <View style={s.card}>
         <View style={s.cardHeader}>
           <Text style={s.sectionTitle}>{text("Profile details", "个人资料")}</Text>
@@ -668,6 +724,14 @@ const s = StyleSheet.create({
   verifyHintText: { color: C.successText, fontSize: 12, fontWeight: "800" },
   verifyNote: { marginTop: 16, color: C.muted, fontSize: 12, lineHeight: 19 },
   codeInput: { fontSize: 26, fontWeight: "900", letterSpacing: 10, textAlign: "center", color: C.navy },
+  blockedNote: { marginTop: 6, marginBottom: 10, color: C.muted, fontSize: 12, lineHeight: 19 },
+  blockedRow: { flexDirection: "row", alignItems: "center", gap: 11, paddingVertical: 10, borderTopWidth: 1, borderTopColor: C.border },
+  blockedIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: "#FDF2EC", alignItems: "center", justifyContent: "center" },
+  blockedCopy: { flex: 1, minWidth: 0 },
+  blockedName: { color: C.navy, fontSize: 14, fontWeight: "800" },
+  blockedDate: { color: C.muted, fontSize: 11, marginTop: 2 },
+  unblockBtn: { borderWidth: 1, borderColor: C.border, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8 },
+  unblockBtnText: { color: C.navy, fontSize: 12, fontWeight: "900" },
   verifyStepActions: { marginTop: 16, flexDirection: "row", justifyContent: "space-between", gap: 12 },
   verifyStepLink: { color: C.navy, fontSize: 13, fontWeight: "800", textDecorationLine: "underline" },
 });

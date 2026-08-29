@@ -1083,6 +1083,41 @@ export type Conversation={id:string;listing_id:string|null;subject:string;buyer_
 export type ChatMessage={id:string;conversation_id:string;sender_user_id:string;sender_email:string;body:string;image_path:string|null;image_mime_type:string|null;image_url?:string|null;read_at:string|null;created_at:string};
 export async function openConversation(input:{listingId?:string|null;subject:string;sellerUserId?:string|null;sellerEmail:string;isDemo?:boolean}){const user=await getCurrentUser();if(!user?.id||!user.email)throw new Error("Please log in first.");let query=supabase.from("conversations").select("*").eq("buyer_user_id",user.id);query=input.listingId?query.eq("listing_id",input.listingId):query.is("listing_id",null).eq("subject",input.subject);const {data:existing,error:findError}=await query.limit(1).maybeSingle();if(findError)throw findError;if(existing)return existing as Conversation;const {data,error}=await supabase.from("conversations").insert({listing_id:input.listingId??null,subject:input.subject,buyer_user_id:user.id,buyer_email:user.email,seller_user_id:input.sellerUserId??null,seller_email:input.sellerEmail,is_demo:Boolean(input.isDemo)}).select("*").single();if(error)throw error;return data as Conversation;}
 export async function loadMyConversations(){const {data,error}=await supabase.from("conversations").select("*").order("updated_at",{ascending:false});if(error)throw error;return (data??[]) as Conversation[];}
+
+export type BlockedUser={id:string;blocked_id:string;reason:string|null;created_at:string;profiles?:{full_name:string|null;email:string|null}|null};
+
+/**
+ * Blocking is one-directional as an action but mutual in effect: once
+ * either side blocks, neither can message the other and each disappears
+ * from the other's listings and conversations. Enforcement lives in the
+ * database, so an older client cannot route around it.
+ */
+export async function blockUser(blockedUserId:string,reason?:string){
+  const {error}=await supabase.rpc("block_user",{p_blocked_id:blockedUserId,p_reason:reason??null});
+  if(error)throw error;
+}
+
+export async function unblockUser(blockedUserId:string){
+  const {error}=await supabase.rpc("unblock_user",{p_blocked_id:blockedUserId});
+  if(error)throw error;
+}
+
+export async function loadBlockedUsers(){
+  const {data,error}=await supabase.from("blocked_users").select("id,blocked_id,reason,created_at").order("created_at",{ascending:false});
+  if(error)throw error;
+  const rows=(data??[]) as BlockedUser[];
+  if(!rows.length)return rows;
+  const {data:people}=await supabase.from("profiles").select("id,full_name,email").in("id",rows.map(r=>r.blocked_id));
+  const byId=new Map((people??[]).map((p:any)=>[p.id,p]));
+  return rows.map(row=>({...row,profiles:byId.get(row.blocked_id)??null}));
+}
+
+/** The other participant in a conversation, or null for a demo thread. */
+export function conversationCounterpartId(conversation:Conversation,myUserId:string){
+  if(conversation.buyer_user_id===myUserId)return conversation.seller_user_id;
+  if(conversation.seller_user_id===myUserId)return conversation.buyer_user_id;
+  return null;
+}
 export async function loadConversationMessages(conversationId:string){const {data,error}=await supabase.from("messages").select("*").eq("conversation_id",conversationId).order("created_at",{ascending:true});if(error)throw error;const rows=(data??[]) as ChatMessage[];return Promise.all(rows.map(async message=>{if(!message.image_path)return message;const {data:signed,error:signedError}=await supabase.storage.from("message-images").createSignedUrl(message.image_path,86400);return {...message,image_url:signedError?null:signed.signedUrl};}));}
 export async function markConversationRead(conversationId:string){const user=await getCurrentUser();if(!user?.id||!user.email)return;const {error}=await supabase.from("messages").update({read_at:new Date().toISOString()}).eq("conversation_id",conversationId).neq("sender_user_id",user.id).is("read_at",null);if(error)throw error;}
 export async function sendConversationMessage(conversationId:string,body:string,imagePath?:string|null,imageMimeType?:string|null){const user=await getCurrentUser();if(!user?.id||!user.email)throw new Error("Please log in first.");const clean=body.trim();if(!clean&&!imagePath)throw new Error("Write a message or add a photo first.");const {error}=await supabase.from("messages").insert({conversation_id:conversationId,sender_user_id:user.id,sender_email:user.email,body:clean||"Photo",image_path:imagePath??null,image_mime_type:imageMimeType??null});if(error)throw error;await supabase.from("conversations").update({updated_at:new Date().toISOString()}).eq("id",conversationId);supabase.functions.invoke("notify-message",{body:{conversationId}}).catch(()=>{});}
