@@ -368,6 +368,11 @@ export default function MyProfileScreen() {
               <Text style={s.settingsItemText}>{text("Terms & Conditions", "条款与条件")}</Text>
               <Ionicons name="chevron-forward" size={18} color={C.muted} />
             </Pressable>
+            <Pressable style={s.settingsItem} onPress={() => { setSettingsOpen(false); router.push("/privacy-policy"); }}>
+              <Ionicons name="lock-closed-outline" size={20} color={C.navy} />
+              <Text style={s.settingsItemText}>{text("Privacy Policy", "隐私政策")}</Text>
+              <Ionicons name="chevron-forward" size={18} color={C.muted} />
+            </Pressable>
             <Pressable style={s.settingsItem} onPress={() => { setSettingsOpen(false); router.push("/contact-support"); }}>
               <Ionicons name="help-circle-outline" size={20} color={C.navy} />
               <Text style={s.settingsItemText}>{text("Help & Support", "帮助与支持")}</Text>

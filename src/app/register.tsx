@@ -520,6 +520,13 @@ export default function RegisterScreen() {
             >
               {text("Terms and Conditions", "《条款与条件》")}
             </Text>
+            {text(" and the ", "与")}
+            <Text
+              style={styles.termsLink}
+              onPress={() => router.push("/privacy-policy")}
+            >
+              {text("Privacy Policy", "《隐私政策》")}
+            </Text>
             {language === "en" ? "." : "。"}
           </Text>
         </Pressable>
@@ -531,7 +538,7 @@ export default function RegisterScreen() {
             color={COLORS.warning}
           />
           <Text style={styles.warningText}>
-            {text("After registering, check your inbox and spam/junk folder for the verification link.", "注册后，请在收件箱和垃圾邮件文件夹中查找验证链接。")}
+            {text("After registering, check your inbox and spam/junk folder for the verification link. A .ac.uk account only receives its verified badge once you open that link — and only a confirmed Oxford or Cambridge address can publish Formal tickets.", "注册后，请在收件箱和垃圾邮件文件夹中查找验证链接。.ac.uk 账号只有在打开该链接后才会获得认证标识；且只有已确认的牛津或剑桥邮箱才能发布 Formal 票。")}
           </Text>
         </View>
 
