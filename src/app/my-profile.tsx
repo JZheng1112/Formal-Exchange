@@ -19,15 +19,16 @@ import { Image } from "expo-image";
 import {
   College,
   Profile,
+  confirmVerificationCode,
   deleteMyAccount,
   isAcUkEmail,
   isOxbridgeEmail,
   loadColleges,
   loadMyProfile,
+  sendVerificationCode,
   signOut,
   updateMyProfile,
   uploadAvatar,
-  verifyProfileWithEmail,
 } from "../lib/formalApi";
 import { useAppLanguage } from "../lib/language";
 
@@ -67,7 +68,7 @@ export default function MyProfileScreen() {
   const [verifyEmail, setVerifyEmail] = useState("");
   const [verifyCode, setVerifyCode] = useState("");
   const [verifySending, setVerifySending] = useState(false);
-  const [verifyStep, setVerifyStep] = useState<"email" | "done">("email");
+  const [verifyStep, setVerifyStep] = useState<"email" | "code">("email");
 
   async function refresh() {
     setLoading(true);
@@ -126,18 +127,35 @@ export default function MyProfileScreen() {
     }
   }
 
-  async function handleVerify() {
+  async function handleSendCode() {
     if (!isAcUkEmail(verifyEmail)) {
       Alert.alert(text("Invalid email", "邮箱无效"), text("Please enter a UK academic email ending in .ac.uk.", "请输入以 .ac.uk 结尾的英国高校邮箱。"));
       return;
     }
     try {
       setVerifySending(true);
-      await verifyProfileWithEmail(verifyEmail);
-      setVerifyStep("done");
+      await sendVerificationCode(verifyEmail);
+      setVerifyCode("");
+      setVerifyStep("code");
+    } catch (error: any) {
+      Alert.alert(text("Could not send the code", "验证码发送失败"), error?.message ?? text("Please try again.", "请重试。"));
+    } finally {
+      setVerifySending(false);
+    }
+  }
+
+  async function handleConfirmCode() {
+    if (verifyCode.trim().length !== 6) {
+      Alert.alert(text("Enter the 6-digit code", "请输入 6 位验证码"), text("Check the email we just sent, including your spam folder.", "请查看刚发送的邮件，别忘了检查垃圾邮件文件夹。"));
+      return;
+    }
+    try {
+      setVerifySending(true);
+      await confirmVerificationCode(verifyEmail, verifyCode);
       await refresh();
-      Alert.alert(text("Verified!", "认证成功！"), text("Your account is now verified.", "你的账户已通过认证。"));
       setVerifyOpen(false);
+      setVerifyStep("email");
+      Alert.alert(text("Verified!", "认证成功！"), text("Your account is now verified.", "你的账户已通过认证。"));
     } catch (error: any) {
       Alert.alert(text("Verification failed", "认证失败"), error?.message ?? text("Please try again.", "请重试。"));
     } finally {
@@ -407,38 +425,78 @@ export default function MyProfileScreen() {
               </Pressable>
             </View>
 
-            <View style={s.verifyInfo}>
-              <Ionicons name="shield-checkmark" size={28} color="#1E40AF" />
-              <Text style={s.verifyInfoText}>
-                {text("Enter your UK academic (.ac.uk) email below. Verified accounts get a badge visible to other users. Oxford and Cambridge emails also unlock Formal ticket publishing.", "请在下方输入你的英国高校 (.ac.uk) 邮箱。认证账户会显示认证标识。牛津和剑桥邮箱还可解锁 Formal 票发布权限。")}
-              </Text>
-            </View>
+            {verifyStep === "email" ? (
+              <>
+                <View style={s.verifyInfo}>
+                  <Ionicons name="shield-checkmark" size={28} color="#1E40AF" />
+                  <Text style={s.verifyInfoText}>
+                    {text("Enter your UK academic (.ac.uk) email below. We will send a 6-digit code to that address to confirm it is yours. Oxford and Cambridge emails also unlock Formal ticket publishing.", "请在下方输入你的英国高校 (.ac.uk) 邮箱。我们会向该邮箱发送 6 位验证码以确认归属。牛津和剑桥邮箱还可解锁 Formal 票发布权限。")}
+                  </Text>
+                </View>
 
-            <Text style={s.label}>{text("Academic email (.ac.uk)", "高校邮箱 (.ac.uk)")}</Text>
-            <TextInput
-              value={verifyEmail}
-              onChangeText={setVerifyEmail}
-              placeholder="name@college.ox.ac.uk"
-              placeholderTextColor="#94A3B8"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              style={s.input}
-            />
+                <Text style={s.label}>{text("Academic email (.ac.uk)", "高校邮箱 (.ac.uk)")}</Text>
+                <TextInput
+                  value={verifyEmail}
+                  onChangeText={setVerifyEmail}
+                  placeholder="name@college.ox.ac.uk"
+                  placeholderTextColor="#94A3B8"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  style={s.input}
+                />
 
-            {verifyEmail.length > 0 && isAcUkEmail(verifyEmail) && isOxbridgeEmail(verifyEmail) && (
-              <View style={s.verifyHint}>
-                <Ionicons name="checkmark-circle" size={16} color={C.successText} />
-                <Text style={s.verifyHintText}>{text("Oxbridge email — will unlock Formal listing privileges.", "牛剑邮箱 — 将解锁 Formal 票发布权限。")}</Text>
-              </View>
+                {verifyEmail.length > 0 && isAcUkEmail(verifyEmail) && isOxbridgeEmail(verifyEmail) && (
+                  <View style={s.verifyHint}>
+                    <Ionicons name="checkmark-circle" size={16} color={C.successText} />
+                    <Text style={s.verifyHintText}>{text("Oxbridge email — will unlock Formal listing privileges.", "牛剑邮箱 — 将解锁 Formal 票发布权限。")}</Text>
+                  </View>
+                )}
+
+                <Pressable style={[s.primaryBtn, verifySending && s.disabled]} disabled={verifySending} onPress={handleSendCode}>
+                  <Text style={s.primaryBtnText}>{verifySending ? text("Sending…", "发送中…") : text("Send me a code", "发送验证码")}</Text>
+                </Pressable>
+
+                <Text style={s.verifyNote}>
+                  {text("We strongly recommend Oxford and Cambridge students verify their accounts. Only verified Oxbridge accounts can publish Formal tickets, and the verified badge helps build trust with buyers.", "我们强烈建议牛津和剑桥的学生进行认证。只有认证的牛剑账号才能发布 Formal 票，认证标识也有助于获得买家信任。")}
+                </Text>
+              </>
+            ) : (
+              <>
+                <View style={s.verifyInfo}>
+                  <Ionicons name="mail-unread-outline" size={28} color="#1E40AF" />
+                  <Text style={s.verifyInfoText}>
+                    {text(`We sent a 6-digit code to ${verifyEmail}. It expires in 15 minutes. Check your spam folder if it has not arrived.`, `验证码已发送至 ${verifyEmail}，15 分钟内有效。如未收到，请检查垃圾邮件文件夹。`)}
+                  </Text>
+                </View>
+
+                <Text style={s.label}>{text("6-digit code", "6 位验证码")}</Text>
+                <TextInput
+                  value={verifyCode}
+                  onChangeText={(value) => setVerifyCode(value.replace(/[^0-9]/g, "").slice(0, 6))}
+                  placeholder="000000"
+                  placeholderTextColor="#94A3B8"
+                  keyboardType="number-pad"
+                  autoComplete="one-time-code"
+                  textContentType="oneTimeCode"
+                  maxLength={6}
+                  style={[s.input, s.codeInput]}
+                />
+
+                <Pressable style={[s.primaryBtn, verifySending && s.disabled]} disabled={verifySending} onPress={handleConfirmCode}>
+                  <Text style={s.primaryBtnText}>{verifySending ? text("Checking…", "校验中…") : text("Confirm code", "确认验证码")}</Text>
+                </Pressable>
+
+                <View style={s.verifyStepActions}>
+                  <Pressable onPress={() => { setVerifyStep("email"); setVerifyCode(""); }} disabled={verifySending}>
+                    <Text style={s.verifyStepLink}>{text("Use a different email", "换一个邮箱")}</Text>
+                  </Pressable>
+                  <Pressable onPress={handleSendCode} disabled={verifySending}>
+                    <Text style={s.verifyStepLink}>{text("Resend code", "重新发送")}</Text>
+                  </Pressable>
+                </View>
+              </>
             )}
-
-            <Pressable style={[s.primaryBtn, verifySending && s.disabled]} disabled={verifySending} onPress={handleVerify}>
-              <Text style={s.primaryBtnText}>{verifySending ? text("Verifying…", "认证中…") : text("Verify now", "立即认证")}</Text>
-            </Pressable>
-
-            <Text style={s.verifyNote}>
-              {text("We strongly recommend Oxford and Cambridge students verify their accounts. Only verified Oxbridge accounts can publish Formal tickets, and the verified badge helps build trust with buyers.", "我们强烈建议牛津和剑桥的学生进行认证。只有认证的牛剑账号才能发布 Formal 票，认证标识也有助于获得买家信任。")}
-            </Text>
           </View>
         </View>
       </Modal>
@@ -609,4 +667,7 @@ const s = StyleSheet.create({
   verifyHint: { marginTop: 7, flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: C.successBg, borderRadius: 10, padding: 8 },
   verifyHintText: { color: C.successText, fontSize: 12, fontWeight: "800" },
   verifyNote: { marginTop: 16, color: C.muted, fontSize: 12, lineHeight: 19 },
+  codeInput: { fontSize: 26, fontWeight: "900", letterSpacing: 10, textAlign: "center", color: C.navy },
+  verifyStepActions: { marginTop: 16, flexDirection: "row", justifyContent: "space-between", gap: 12 },
+  verifyStepLink: { color: C.navy, fontSize: 13, fontWeight: "800", textDecorationLine: "underline" },
 });

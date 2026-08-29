@@ -528,19 +528,41 @@ export async function uploadAvatar(uri: string) {
   return data.publicUrl;
 }
 
-export async function verifyProfileWithEmail(verificationEmail: string) {
-  const { error } = await supabase.rpc("verify_profile_email", {
-    p_verification_email: verificationEmail.trim().toLowerCase(),
+/**
+ * Step 1 of academic-email verification: ask the backend to mail a
+ * one-time code to the address being claimed. The code is never returned
+ * here — receiving it in that inbox is the proof of ownership.
+ */
+export async function sendVerificationCode(email: string) {
+  const { data, error } = await supabase.functions.invoke("send-verification-code", {
+    body: { email: email.trim().toLowerCase() },
+  });
+  if (error) {
+    // Edge function errors carry the useful message in the response body.
+    const detail = await readFunctionError(error);
+    throw new Error(detail ?? error.message);
+  }
+  if (data?.error) throw new Error(data.error);
+}
+
+/** Step 2: redeem the code. Grants the badge, and Formal rights for Oxbridge. */
+export async function confirmVerificationCode(email: string, code: string) {
+  const { error } = await supabase.rpc("confirm_email_verification", {
+    p_email: email.trim().toLowerCase(),
+    p_code: code.trim(),
   });
   if (error) throw error;
 }
 
-export async function sendVerificationCode(email: string) {
-  const { error } = await supabase.auth.signInWithOtp({
-    email: email.trim().toLowerCase(),
-    options: { shouldCreateUser: false },
-  });
-  if (error) throw error;
+async function readFunctionError(error: unknown): Promise<string | null> {
+  const response = (error as { context?: Response })?.context;
+  if (!response || typeof response.json !== "function") return null;
+  try {
+    const body = await response.json();
+    return typeof body?.error === "string" ? body.error : null;
+  } catch {
+    return null;
+  }
 }
 
 
