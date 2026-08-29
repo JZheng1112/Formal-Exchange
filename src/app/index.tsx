@@ -608,7 +608,10 @@ const s = StyleSheet.create({
   hMobile: { fontSize: 23, marginTop: 3 },
   resultHeading: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 10, marginTop: 20, marginBottom: 10 },
   resultCount: { color: "#64748B", fontSize: 11, fontWeight: "800" },
-  grid: { marginTop: 14, flexDirection: "row", flexWrap: "wrap", gap: 12 },
+  // alignItems flex-start: without it a card sharing a row with a
+  // photo-bearing one stretches to match its height, leaving a large
+  // empty block under the shorter card.
+  grid: { marginTop: 14, flexDirection: "row", flexWrap: "wrap", gap: 12, alignItems: "flex-start" },
   card: {
     width: "48%",
     minWidth: 280,
