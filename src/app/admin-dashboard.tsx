@@ -112,7 +112,7 @@ export default function AdminDashboard() {
 
   return (
     <View style={s.shell}>
-      <ScrollView style={s.page} contentContainerStyle={[s.content, mobile && s.mobileContent]}
+      <ScrollView keyboardShouldPersistTaps="handled" style={s.page} contentContainerStyle={[s.content, mobile && s.mobileContent]}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor={C.navy} />}>
         <View style={[s.header, mobile && s.headerMobile]}>
           <Pressable style={s.iconButton} onPress={() => router.replace("/my-profile")} accessibilityLabel="Back to profile">

@@ -92,7 +92,7 @@ export default function CollegeRatingDetail() {
   if (loading) return <View style={s.center}><Text style={s.loading}>{text("Loading college…", "正在加载学院…")}</Text></View>;
   if (!college) return <View style={s.center}><Text style={s.title}>{text("College unavailable", "学院信息不可用")}</Text><Pressable style={s.primary} onPress={() => router.replace("/college-rankings")}><Text style={s.primaryText}>{text("Back to rankings", "返回排行")}</Text></Pressable></View>;
 
-  return <ScrollView style={s.page} contentContainerStyle={s.content}>
+  return <ScrollView keyboardShouldPersistTaps="handled" style={s.page} contentContainerStyle={s.content}>
     <View style={s.topbar}><Pressable style={s.back} onPress={() => router.canGoBack() ? router.back() : router.replace("/college-rankings")}><Ionicons name="chevron-back" size={22} color={C.navy}/></Pressable><View style={s.heading}><Text style={s.kicker}>{college.university.toUpperCase()} · FORMAL</Text><Text style={s.title}>{college.name}</Text></View></View>
     <View style={s.summary}>
       <View style={s.overall}><Text style={s.overallValue}>{reviews.length ? overall.toFixed(1) : "—"}</Text><StarsDisplay value={overall}/><Text style={s.overallMeta}>{reviews.length ? text(`${reviews.length} community review${reviews.length === 1 ? "" : "s"}`, `${reviews.length} 条社区评分`) : text("No reviews yet", "暂无评论")}</Text></View>

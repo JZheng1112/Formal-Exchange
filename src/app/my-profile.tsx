@@ -232,7 +232,7 @@ export default function MyProfileScreen() {
 
   if (!profile) {
     return (
-      <ScrollView style={s.page} contentContainerStyle={s.centerContent}>
+      <ScrollView keyboardShouldPersistTaps="handled" style={s.page} contentContainerStyle={s.centerContent}>
         <View style={s.card}>
           <Pressable style={s.backBtn} onPress={() => router.canGoBack() ? router.back() : router.replace("/")}>
             <Ionicons name="arrow-back" size={20} color={C.navy} />
@@ -256,7 +256,7 @@ export default function MyProfileScreen() {
   const collegeName = colleges.find((c) => c.id === collegeId)?.name;
 
   return (
-    <ScrollView style={s.page} contentContainerStyle={s.content}>
+    <ScrollView keyboardShouldPersistTaps="handled" style={s.page} contentContainerStyle={s.content}>
       {/* Top bar */}
       <View style={s.topBar}>
         <Pressable style={s.backBtn} onPress={() => router.canGoBack() ? router.back() : router.replace("/")}>

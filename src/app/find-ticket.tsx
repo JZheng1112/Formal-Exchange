@@ -55,7 +55,7 @@ export default function FindTicket(){
 
   function reset(){setCategory("formal");setSameCity(false);setCollegeId("all");setDate("");setBudget("");setCollegeSearch("");}
 
-  return <ScrollView style={s.page} contentContainerStyle={[s.content,mobile&&s.contentMobile]}>
+  return <ScrollView keyboardShouldPersistTaps="handled" style={s.page} contentContainerStyle={[s.content,mobile&&s.contentMobile]}>
     {/* Header */}
     <View style={s.top}>
       <Pressable style={s.back} onPress={()=>router.canGoBack()?router.back():router.replace("/")}>
@@ -126,7 +126,7 @@ export default function FindTicket(){
               placeholderTextColor="#94A3B8"
               style={s.searchInput}
             />
-            {collegeSearch.trim() ? <ScrollView style={s.collegeList} nestedScrollEnabled>
+            {collegeSearch.trim() ? <ScrollView keyboardShouldPersistTaps="handled" style={s.collegeList} nestedScrollEnabled>
               <Pressable style={s.collegeItem} onPress={()=>{setCollegeId("all");setCollegeSearch("");}}>
                 <Text style={s.collegeItemText}>{text("All colleges","所有学院")}</Text>
               </Pressable>

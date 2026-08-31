@@ -106,7 +106,7 @@ export default function ContactSupportScreen() {
   }
 
   return (
-    <ScrollView style={styles.page} contentContainerStyle={[styles.content, mobile && styles.contentMobile]}>
+    <ScrollView keyboardShouldPersistTaps="handled" style={styles.page} contentContainerStyle={[styles.content, mobile && styles.contentMobile]}>
       <View style={[styles.topBar, mobile && styles.topBarMobile]}>
         <Pressable style={styles.backButton} onPress={() => router.canGoBack() ? router.back() : router.replace("/about")}>
           <Ionicons name="arrow-back" size={20} color={COLORS.navy} />
