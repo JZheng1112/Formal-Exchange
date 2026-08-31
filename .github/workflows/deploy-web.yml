@@ -45,7 +45,7 @@ jobs:
       # that are quoted externally a real file so they answer 200.
       - name: Materialise externally linked routes
         run: |
-          for route in privacy-policy terms-and-conditions about how-it-works; do
+          for route in privacy-policy terms-and-conditions about how-it-works contact-support; do
             mkdir -p "dist/$route"
             cp dist/index.html "dist/$route/index.html"
           done
