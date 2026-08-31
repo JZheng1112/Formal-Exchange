@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -14,6 +14,7 @@ import {
   View,
 } from "react-native";
 
+import { getKeepSignedIn, setKeepSignedIn } from "../lib/authStorage";
 import { signInWithEmail, isAcUkEmail } from "../lib/formalApi";
 import { useAppLanguage } from "../lib/language";
 
@@ -35,10 +36,16 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [keepMeSignedIn, setKeepMeSignedIn] = useState(true);
+
+  useEffect(() => { getKeepSignedIn().then(setKeepMeSignedIn).catch(() => {}); }, []);
 
   async function submit() {
     try {
       setSubmitting(true);
+      // Set before signing in: the preference decides where the new
+      // session is written.
+      await setKeepSignedIn(keepMeSignedIn);
       await signInWithEmail(email, password);
       router.replace("/my-profile");
     } catch (error: any) {
@@ -103,6 +110,17 @@ export default function LoginScreen() {
           </Pressable>
         </View>
 
+        <Pressable style={styles.keepRow} onPress={() => setKeepMeSignedIn(!keepMeSignedIn)}>
+          <Ionicons
+            name={keepMeSignedIn ? "checkbox" : "square-outline"}
+            size={22}
+            color={COLORS.navy}
+          />
+          <Text style={styles.keepText}>
+            {text("Keep me signed in on this device", "在此设备上保持登录")}
+          </Text>
+        </Pressable>
+
         <Pressable
           style={[styles.primaryButton, submitting && styles.disabled]}
           disabled={submitting}
@@ -126,6 +144,8 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: COLORS.background },
+  keepRow: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 18, alignSelf: "flex-start" },
+  keepText: { color: COLORS.navy, fontSize: 14, fontWeight: "700" },
   content: { flexGrow: 1, padding: 24, alignItems: "center", justifyContent: "center" },
   fullLogo: { width: "100%", maxWidth: 520, height: 150, marginBottom: 16 },
   card: { width: "100%", maxWidth: 520, backgroundColor: COLORS.card, borderRadius: 30, borderWidth: 1, borderColor: COLORS.border, padding: 26 },

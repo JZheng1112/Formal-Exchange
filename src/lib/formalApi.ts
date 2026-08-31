@@ -1,5 +1,7 @@
 import "react-native-url-polyfill/auto";
 import { createClient } from "@supabase/supabase-js";
+import { Platform } from "react-native";
+import { authStorage } from "./authStorage";
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
@@ -12,37 +14,20 @@ if (!supabaseAnonKey) {
   throw new Error("Missing EXPO_PUBLIC_SUPABASE_ANON_KEY");
 }
 
-const safeStorage = {
-  getItem: (key: string) => {
-    try {
-      if (typeof globalThis !== "undefined" && "localStorage" in globalThis) {
-        return globalThis.localStorage.getItem(key);
-      }
-    } catch {}
-    return null;
-  },
-  setItem: (key: string, value: string) => {
-    try {
-      if (typeof globalThis !== "undefined" && "localStorage" in globalThis) {
-        globalThis.localStorage.setItem(key, value);
-      }
-    } catch {}
-  },
-  removeItem: (key: string) => {
-    try {
-      if (typeof globalThis !== "undefined" && "localStorage" in globalThis) {
-        globalThis.localStorage.removeItem(key);
-      }
-    } catch {}
-  },
-};
-
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    storage: safeStorage,
+    // The previous adapter only ever reached globalThis.localStorage, which
+    // does not exist on React Native, so every read and write was swallowed
+    // by its own try/catch. persistSession was already true, but there was
+    // nowhere to persist to: the screen after login read null and the app
+    // showed "Log in required". authStorage uses AsyncStorage on device and
+    // localStorage on web, and honours the keep-signed-in preference.
+    storage: authStorage,
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: true,
+    // Only a browser ever sees the token fragment on a confirmation or
+    // password-reset link.
+    detectSessionInUrl: Platform.OS === "web",
   },
 });
 
