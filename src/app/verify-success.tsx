@@ -62,7 +62,7 @@ export default function VerifySuccessScreen() {
 
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: COLORS.background },
-  content: { minHeight: "100%", padding: 24, alignItems: "center", justifyContent: "center" },
+  content: { flexGrow: 1, padding: 24, alignItems: "center", justifyContent: "center" },
   card: { width: "100%", maxWidth: 560, backgroundColor: COLORS.card, borderRadius: 30, borderWidth: 1, borderColor: COLORS.border, padding: 30, alignItems: "center" },
   iconBox: { width: 70, height: 70, borderRadius: 24, backgroundColor: COLORS.successBg, alignItems: "center", justifyContent: "center", marginBottom: 18 },
   title: { fontSize: 32, fontWeight: "900", color: COLORS.navy, textAlign: "center" },

@@ -3,6 +3,8 @@ import { router } from "expo-router";
 import { useState } from "react";
 import {
   Alert,
+  KeyboardAvoidingView,
+  Platform,
   Image,
   Pressable,
   ScrollView,
@@ -47,7 +49,11 @@ export default function LoginScreen() {
   }
 
   return (
-    <ScrollView style={styles.page} contentContainerStyle={styles.content}>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
+      <ScrollView style={styles.page} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <Image
         source={require("../assets/formal-exchange-full.png")}
         accessibilityLabel={text("Formal Exchange — Oxford and Cambridge", "Formal Exchange — 牛津与剑桥")}
@@ -114,12 +120,13 @@ export default function LoginScreen() {
         </Pressable>
       </View>
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: COLORS.background },
-  content: { minHeight: "100%", padding: 24, alignItems: "center", justifyContent: "center" },
+  content: { flexGrow: 1, padding: 24, alignItems: "center", justifyContent: "center" },
   fullLogo: { width: "100%", maxWidth: 520, height: 150, marginBottom: 16 },
   card: { width: "100%", maxWidth: 520, backgroundColor: COLORS.card, borderRadius: 30, borderWidth: 1, borderColor: COLORS.border, padding: 26 },
   backButton: { width: 44, height: 44, borderRadius: 16, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, alignItems: "center", justifyContent: "center", marginBottom: 18 },

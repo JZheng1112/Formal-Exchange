@@ -58,11 +58,14 @@ const s = StyleSheet.create({
   kicker: { color: "#9A3412", fontSize: 11, fontWeight: "900", letterSpacing: 1.2 },
   title: { color: "#071B3A", fontSize: 38, fontWeight: "900", marginTop: 7 },
   lead: { color: "#64748B", fontSize: 16, lineHeight: 25, marginTop: 10, maxWidth: 680 },
-  grid: { flexDirection: "row", flexWrap: "wrap", gap: 14, marginTop: 25 },
+  // alignItems flex-start keeps a card at its own content height; without it
+  // a card sharing a line stretches and its text, which used to carry flex 1,
+  // opened a large gap above the button.
+  grid: { flexDirection: "row", flexWrap: "wrap", gap: 14, marginTop: 25, alignItems: "flex-start" },
   card: { flex: 1, minWidth: 280, backgroundColor: "#fff", borderWidth: 1, borderColor: "#E2E8F0", borderRadius: 24, padding: 20 },
   icon: { width: 52, height: 52, borderRadius: 17, backgroundColor: "#071B3A", alignItems: "center", justifyContent: "center" },
   cardTitle: { color: "#071B3A", fontSize: 22, fontWeight: "900", marginTop: 16 },
-  cardText: { color: "#64748B", lineHeight: 23, marginTop: 8, flex: 1 },
+  cardText: { color: "#64748B", lineHeight: 23, marginTop: 8 },
   button: { marginTop: 20, minHeight: 50, borderRadius: 16, paddingHorizontal: 16, backgroundColor: "#071B3A", flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   buttonText: { color: "#fff", fontWeight: "900" },
 });

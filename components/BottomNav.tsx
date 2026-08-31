@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppLanguage } from "../src/lib/language";
 
 const NAVY = "#071B3A";
@@ -11,6 +12,7 @@ type NavKey = "buyer" | "seller" | "college" | "messages" | "about" | "me";
 export default function BottomNav({ active }: { active: NavKey }) {
   const { text } = useAppLanguage();
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const [hydrated, setHydrated] = useState(Platform.OS !== "web");
   const [railCollapsed, setRailCollapsed] = useState(false);
   useEffect(() => {
@@ -76,7 +78,9 @@ export default function BottomNav({ active }: { active: NavKey }) {
   </View>;
 
   return (
-    <View style={s.bar}>
+    // The home indicator sits over the bar's lower edge on a modern iPhone,
+    // so grow the bar by the inset instead of letting labels run under it.
+    <View style={[s.bar, { height: 78 + insets.bottom, paddingBottom: insets.bottom }]}>
       <View style={s.group}>
         {item("buyer", text("Buyer", "买票"), "search-outline", buyerPath)}
         {item("seller", text("Seller", "卖票"), "pricetag-outline", "/seller")}

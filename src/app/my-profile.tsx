@@ -630,7 +630,7 @@ const s = StyleSheet.create({
   loadingText: { marginTop: 12, color: C.muted, fontWeight: "700" },
   page: { flex: 1, backgroundColor: C.bg },
   content: { padding: 18, paddingTop: 28, paddingBottom: 70, maxWidth: 680, width: "100%", alignSelf: "center" },
-  centerContent: { minHeight: "100%", padding: 24, alignItems: "center", justifyContent: "center" },
+  centerContent: { flexGrow: 1, padding: 24, alignItems: "center", justifyContent: "center" },
 
   topBar: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 18 },
   backBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: C.card, borderWidth: 1, borderColor: C.border, alignItems: "center", justifyContent: "center" },

@@ -3,6 +3,8 @@ import { router } from "expo-router";
 import { useState } from "react";
 import {
   Alert,
+  KeyboardAvoidingView,
+  Platform,
   Image,
   Pressable,
   ScrollView,
@@ -55,7 +57,11 @@ export default function ForgotPasswordScreen() {
   }
 
   return (
-    <ScrollView style={s.page} contentContainerStyle={s.content}>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
+      <ScrollView style={s.page} contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
       <Image
         source={require("../assets/formal-exchange-full.png")}
         accessibilityLabel="Formal Exchange"
@@ -131,12 +137,13 @@ export default function ForgotPasswordScreen() {
         </Pressable>
       </View>
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const s = StyleSheet.create({
   page: { flex: 1, backgroundColor: C.background },
-  content: { minHeight: "100%", padding: 24, alignItems: "center", justifyContent: "center" },
+  content: { flexGrow: 1, padding: 24, alignItems: "center", justifyContent: "center" },
   logo: { width: "100%", maxWidth: 520, height: 150, marginBottom: 16 },
   card: { width: "100%", maxWidth: 520, backgroundColor: C.card, borderRadius: 30, borderWidth: 1, borderColor: C.border, padding: 26 },
   backButton: { width: 44, height: 44, borderRadius: 16, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, alignItems: "center", justifyContent: "center", marginBottom: 18 },

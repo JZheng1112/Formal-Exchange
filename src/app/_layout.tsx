@@ -1,6 +1,8 @@
+import { StatusBar } from "expo-status-bar";
 import { Slot, usePathname } from "expo-router";
 import { useEffect, useState } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { recordPageView } from "../lib/formalApi";
 import { LanguageProvider, useAppLanguage } from "../lib/language";
@@ -53,6 +55,18 @@ function CookieConsent() {
   );
 }
 
+/**
+ * Screens draw from y=0, so on a device with a notch or Dynamic Island the
+ * first line of every page sat underneath the clock and battery. Inset the
+ * whole app once here rather than touching each screen. Web has no inset to
+ * apply, and the bottom is left to BottomNav, which owns that edge.
+ */
+function SafeFrame({ children }: { children: React.ReactNode }) {
+  const insets = useSafeAreaInsets();
+  if (Platform.OS === "web") return <>{children}</>;
+  return <View style={{ flex: 1, paddingTop: insets.top }}>{children}</View>;
+}
+
 export default function RootLayout() {
   const pathname = usePathname();
 
@@ -61,10 +75,15 @@ export default function RootLayout() {
   }, [pathname]);
 
   return (
-    <LanguageProvider>
-      <Slot />
-      {Platform.OS === "web" && <CookieConsent />}
-    </LanguageProvider>
+    <SafeAreaProvider>
+      <LanguageProvider>
+        <StatusBar style="dark" />
+        <SafeFrame>
+          <Slot />
+        </SafeFrame>
+        {Platform.OS === "web" && <CookieConsent />}
+      </LanguageProvider>
+    </SafeAreaProvider>
   );
 }
 

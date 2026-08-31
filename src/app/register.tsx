@@ -3,6 +3,8 @@ import { router } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
+  KeyboardAvoidingView,
+  Platform,
   Image,
   Pressable,
   ScrollView,
@@ -339,11 +341,15 @@ export default function RegisterScreen() {
   }
 
   return (
-    <ScrollView
-      style={styles.page}
-      contentContainerStyle={styles.centerContent}
-      keyboardShouldPersistTaps="handled"
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
+      <ScrollView
+        style={styles.page}
+        contentContainerStyle={styles.centerContent}
+        keyboardShouldPersistTaps="handled"
+      >
       <Image
         source={require("../assets/formal-exchange-full.png")}
         accessibilityLabel={text("Formal Exchange — Oxford and Cambridge", "Formal Exchange — 牛津与剑桥")}
@@ -578,6 +584,7 @@ export default function RegisterScreen() {
         </Pressable>
       </View>
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -587,7 +594,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   centerContent: {
-    minHeight: "100%",
+    flexGrow: 1,
     padding: 24,
     alignItems: "center",
     justifyContent: "center",
