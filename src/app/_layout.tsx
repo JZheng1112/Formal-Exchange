@@ -1,5 +1,5 @@
 import { StatusBar } from "expo-status-bar";
-import { Slot, usePathname } from "expo-router";
+import { Stack, usePathname } from "expo-router";
 import { useEffect, useState } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -79,7 +79,23 @@ export default function RootLayout() {
       <LanguageProvider>
         <StatusBar style="dark" />
         <SafeFrame>
-          <Slot />
+          {/*
+           * Slot renders a route with no navigator, so there was no stack and
+           * therefore no swipe-back gesture at all — every secondary screen
+           * could only be left through its own back button, which sits at the
+           * top of a tall phone. A Stack restores the iOS edge swipe.
+           *
+           * The gesture stays on the left edge rather than full-screen: the
+           * marketplace category row is a horizontal ScrollView and a
+           * full-screen gesture would fight it.
+           */}
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              gestureEnabled: true,
+              animation: "slide_from_right",
+            }}
+          />
         </SafeFrame>
         {Platform.OS === "web" && <CookieConsent />}
       </LanguageProvider>
