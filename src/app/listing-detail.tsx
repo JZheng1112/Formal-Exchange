@@ -8,13 +8,15 @@ import {
   TicketListing,
   getCurrentUser,
   loadPublicProfile,
+  isItemSaved,
   loadVisibleListingById,
   openConversation,
+  toggleSavedItem,
   submitListingReport,
 } from "../lib/formalApi";
 import { useAppLanguage } from "../lib/language";
 
-const C = { bg: "#F5F1E8", navy: "#071B3A", blue: "#123C69", gold: "#C8A951", muted: "#64748B", border: "#DFE5EC", danger: "#991B1B" };
+const C = { bg: "#F5F1E8", navy: "#071B3A", blue: "#123C69", gold: "#C8A951", muted: "#64748B", border: "#DFE5EC", danger: "#991B1B", accent: "#9A3412" };
 
 const DEMOS = [
   { id: "reuben", college: "Reuben College", university: "Oxford", type: "Hall Formal", date: "2026-09-05", time: "19:00", price: 24, quantity: 1, image: require("../assets/demo-formal-hall.jpg"), dress: "Formal / gowns", idRule: "University card", entry: "Guest allowed with host", escort: true, dietary: ["Vegan available", "Vegetarian available"], details: "Sample listing showing the information a seller should provide before a buyer makes contact." },
@@ -32,6 +34,8 @@ export default function ListingDetail() {
   const { language, text } = useAppLanguage();
   const { width } = useWindowDimensions();
   const compact = width < 720;
+  // contentCompact pads 12 each side, so a photo spans the rest of the viewport.
+  const heroWidth = Math.max(0, width - 24);
   const params = useLocalSearchParams<{ id?: string; demo?: string }>();
   const [hydrated, setHydrated] = useState(Platform.OS !== "web");
   const demo = useMemo(() => DEMOS.find((item) => item.id === params.demo), [params.demo]);
@@ -60,6 +64,8 @@ export default function ListingDetail() {
   const formal = listing ? (listing.listing_category ?? "formal") === "formal" : Boolean(demo);
   const transport = listing?.listing_category === "coach_train";
   const event = listing?.listing_category === "event";
+  const [saved, setSaved] = useState(false);
+  useEffect(() => { if (listing?.id) isItemSaved("listing", listing.id).then(setSaved).catch(() => {}); }, [listing?.id]);
   const images = listing ? ([...(listing.image_urls ?? []), ...(listing.hall_photo_url ? [listing.hall_photo_url] : [])].filter((value, index, all) => Boolean(value) && all.indexOf(value) === index)) : [];
   const title = demo?.college ?? (transport ? `${listing?.origin_name ?? ""} → ${listing?.destination_name ?? ""}` : event ? localContent(listing?.event_name, listing?.event_name_en, listing?.event_name_zh, listing?.content_language, language, showOriginal) || text("Event listing", "活动门票") : listing?.colleges?.name ?? text("Ticket listing", "票务帖子"));
   const type = localValue(demo?.type ?? listing?.ticket_type ?? listing?.formal_type ?? "Ticket", language);
@@ -100,6 +106,15 @@ export default function ListingDetail() {
     }
   }
 
+  async function toggleSave() {
+    if (!listing) return;
+    try {
+      setSaved(await toggleSavedItem("listing", listing.id));
+    } catch (error: any) {
+      Alert.alert(text("Could not save", "收藏失败"), error?.message ?? text("Please log in first.", "请先登录。"));
+    }
+  }
+
   async function report() {
     if (!listing) return router.push("/contact-support");
     try {
@@ -112,19 +127,41 @@ export default function ListingDetail() {
 
   if (!hydrated) return <View style={s.center} />;
   if (loading) return <View style={s.center}><Text style={s.loading}>{text("Loading ticket…", "正在加载票务…")}</Text></View>;
-  if (!listing && !demo) return <View style={s.center}><Ionicons name="ticket-outline" size={40} color={C.muted} /><Text style={s.missingTitle}>{text("Listing unavailable", "帖子不可用")}</Text><Text style={s.missing}>{text("It may have expired, been withdrawn, sold, or be restricted to a different buyer group.", "帖子可能已过期、撤下、售出，或仅对其他买家群体可见。")}</Text><Pressable style={s.primary} onPress={() => router.replace("/")}><Text style={s.primaryText}>{text("Back to listings", "返回帖子列表")}</Text></Pressable></View>;
+  if (!listing && !demo) return <View style={s.center}><Ionicons name="ticket-outline" size={40} color={C.muted} /><Text style={s.missingTitle}>{text("Listing unavailable", "帖子不可用")}</Text><Text style={s.missing}>{text("It may have expired, been withdrawn, sold, or be restricted to a different buyer group.", "帖子可能已过期、撤下、售出，或仅对其他买家群体可见。")}</Text><Pressable style={({pressed}) => [s.primary, pressed && s.pressed]} onPress={() => router.replace("/")}><Text style={s.primaryText}>{text("Back to listings", "返回帖子列表")}</Text></Pressable></View>;
 
   return <ScrollView style={s.page} contentContainerStyle={[s.content, compact && s.contentCompact]}>
     <View style={s.topbar}>
-      <Pressable style={s.iconButton} onPress={() => router.canGoBack()?router.back():router.replace("/")}><Ionicons name="chevron-back" size={23} color={C.navy} /></Pressable>
+      <Pressable style={({pressed}) => [s.iconButton, pressed && s.pressed]} onPress={() => router.canGoBack()?router.back():router.replace("/")}><Ionicons name="chevron-back" size={23} color={C.navy} /></Pressable>
       <Text style={s.topTitle}>{text("Ticket details", "票务详情")}</Text>
-      <Pressable style={s.iconButton} onPress={report}><Ionicons name="flag-outline" size={21} color={C.navy} /></Pressable>
+      {/*
+       * A lone flag in the corner read as "bookmark", so people pressed it
+       * expecting to save the ticket and instead filed a report. Saving now
+       * has its own button and the flag only means report.
+       */}
+      <View style={s.topActions}>
+        <Pressable
+          style={s.iconButton}
+          onPress={toggleSave}
+          accessibilityLabel={saved ? text("Remove from saved", "取消收藏") : text("Save this ticket", "收藏此票")}
+        >
+          <Ionicons name={saved ? "bookmark" : "bookmark-outline"} size={20} color={saved ? C.accent : C.navy} />
+        </Pressable>
+        <Pressable style={({pressed}) => [s.iconButton, pressed && s.pressed]} onPress={report} accessibilityLabel={text("Report this listing", "举报此帖")}>
+          <Ionicons name="flag-outline" size={20} color={C.navy} />
+        </Pressable>
+      </View>
     </View>
 
     {demo ? <View style={s.demoBanner}><Ionicons name="information-circle-outline" size={19} color="#92400E" /><Text style={s.demoText}>{text("DEMO · This sample is not a real ticket. Contact opens a conversation with the Formal Exchange team.", "示例 · 这不是真实票务。点击联系会与 Formal Exchange 团队开始对话。")}</Text></View> : null}
     {expiredDemo ? <View style={s.expired}><Text style={s.expiredText}>{text("This sample has expired and is no longer available.", "此示例已过期，不再可用。")}</Text></View> : null}
 
-    {demo ? <Image source={demo.image} style={[s.hero, compact && s.heroCompact]} contentFit="cover" cachePolicy="memory-disk" /> : images.length ? <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} style={s.gallery}>{images.map((uri) => <Image key={uri} source={{ uri }} style={[s.hero, compact && s.heroCompact]} contentFit="cover" cachePolicy="memory-disk" transition={150} />)}</ScrollView> : <View style={[s.hero, s.placeholder, compact && s.heroCompact]}><Ionicons name={transport ? "train-outline" : event ? "calendar-outline" : "restaurant-outline"} size={50} color="#8BA6C3" /></View>}
+    {/*
+     * heroCompact used width "100%". Inside a horizontal ScrollView there is
+     * no parent width for a percentage to resolve against, so each photo
+     * collapsed and the gallery rendered as a tall empty band. Pages are sized
+     * in real pixels from the viewport instead.
+     */}
+    {demo ? <Image source={demo.image} style={[s.hero, compact && { ...s.heroCompact, width: heroWidth }]} contentFit="cover" cachePolicy="memory-disk" /> : images.length ? <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} style={s.gallery}>{images.map((uri) => <Image key={uri} source={{ uri }} style={[s.hero, compact && { ...s.heroCompact, width: heroWidth }]} contentFit="cover" cachePolicy="memory-disk" transition={150} />)}</ScrollView> : <View style={[s.hero, s.placeholder, compact && { ...s.heroCompact, width: heroWidth }]}><Ionicons name={transport ? "train-outline" : event ? "calendar-outline" : "restaurant-outline"} size={50} color="#8BA6C3" /></View>}
 
     <View style={s.summaryCard}>
       <View style={s.badges}><Badge text={localValue(campus ?? "University", language)} /><Badge text={type} />{listing?.open_to_swap?<View style={s.swapBadge}><Ionicons name="swap-horizontal" size={14} color="#78350F"/><Text style={s.swapBadgeText}>{text("Supports ticket swaps","支持票换票")}</Text></View>:null}</View>
@@ -132,7 +169,7 @@ export default function ListingDetail() {
       <Text style={s.date}>{date} · {time}</Text>
       <View style={s.priceRow}><Text style={s.price}>£{price.toFixed(2)}</Text><Text style={s.quantity}>{text(`${quantity} ${quantity === 1 ? "place" : "places"} available`, `剩余 ${quantity} 个名额`)}</Text></View>
       {!demo && sellerProfile?.full_name ? <View style={s.sellerRow}><Ionicons name="person-circle-outline" size={20} color={C.muted} /><Text style={s.sellerName}>{sellerProfile.full_name}</Text>{sellerProfile.is_verified ? <View style={s.verifiedBadge}><Ionicons name="checkmark-circle" size={15} color="#047857" /><Text style={s.verifiedText}>{text("Verified","已认证")}</Text></View> : null}</View> : null}
-      {!demo && listing?.content_language && listing.content_language !== language ? <Pressable style={s.originalButton} onPress={()=>setShowOriginal(value=>!value)}><Ionicons name="language-outline" size={17} color={C.blue}/><Text style={s.originalText}>{showOriginal?text("Show translation","显示译文"):text("View original","查看原文")}</Text></Pressable>:null}
+      {!demo && listing?.content_language && listing.content_language !== language ? <Pressable style={({pressed}) => [s.originalButton, pressed && s.pressed]} onPress={()=>setShowOriginal(value=>!value)}><Ionicons name="language-outline" size={17} color={C.blue}/><Text style={s.originalText}>{showOriginal?text("Show translation","显示译文"):text("View original","查看原文")}</Text></Pressable>:null}
     </View>
 
     {transport ? <Section title={text("Journey", "行程")}>
@@ -184,7 +221,7 @@ export default function ListingDetail() {
       {!demo && listing?.private_contacts?.length ? <Pressable style={({ pressed }) => [s.secondary, pressed && s.pressed]} onPress={() => setShowContacts((value) => !value)}><Text style={s.secondaryText}>{showContacts ? text("Hide external contact", "隐藏外部联系方式") : text("Show external contact", "显示外部联系方式")}</Text></Pressable> : null}
     </View>
     {contactStatus ? <Text style={[s.contactStatus, contactStatus.startsWith("Could not") && s.contactError]}>{contactStatus}</Text> : null}
-    <Pressable style={s.report} onPress={report}><Ionicons name="flag-outline" size={16} color={C.danger} /><Text style={s.reportText}>{text("Report eligibility, safety or listing issue", "举报资格、安全或帖子问题")}</Text></Pressable>
+    <Pressable style={({pressed}) => [s.report, pressed && s.pressed]} onPress={report}><Ionicons name="flag-outline" size={16} color={C.danger} /><Text style={s.reportText}>{text("Report eligibility, safety or listing issue", "举报资格、安全或帖子问题")}</Text></Pressable>
   </ScrollView>;
 }
 
@@ -203,6 +240,7 @@ function demoDetail(id:string,language:"en"|"zh"){if(language==="en")return DEMO
 const s = StyleSheet.create({
   page: { flex: 1, backgroundColor: C.bg }, content: { boxSizing: "border-box", width: "100%", maxWidth: 900, alignSelf: "center", padding: 22, paddingTop: 22, paddingBottom: 80 }, contentCompact: { padding: 12, paddingTop: 12 },
   center: { flex: 1, backgroundColor: C.bg, alignItems: "center", justifyContent: "center", padding: 30 }, loading: { color: C.navy, fontWeight: "900" }, missingTitle: { color: C.navy, fontSize: 24, fontWeight: "900", marginTop: 12 }, missing: { color: C.muted, textAlign: "center", lineHeight: 21, maxWidth: 430, marginTop: 7 },
+  topActions: { flexDirection: "row", gap: 8 },
   topbar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 12 }, iconButton: { width: 43, height: 43, borderRadius: 22, alignItems: "center", justifyContent: "center", backgroundColor: "#fff", borderWidth: 1, borderColor: C.border }, topTitle: { color: C.navy, fontSize: 17, fontWeight: "900" },
   demoBanner: { flexDirection: "row", gap: 8, backgroundColor: "#FFFBEB", borderRadius: 14, padding: 11, marginBottom: 10 }, demoText: { color: "#92400E", fontSize: 12, lineHeight: 18, fontWeight: "800", flex: 1 }, expired: { backgroundColor: "#FEF2F2", borderRadius: 13, padding: 11, marginBottom: 10 }, expiredText: { color: C.danger, fontWeight: "900" },
   gallery: { width: "100%", borderRadius: 22 }, hero: { width: 856, height: 430, borderRadius: 22, backgroundColor: "#E8EEF4" }, heroCompact: { width: "100%", height: 300, borderRadius: 18 }, placeholder: { alignItems: "center", justifyContent: "center" },

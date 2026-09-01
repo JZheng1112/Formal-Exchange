@@ -1137,6 +1137,31 @@ export type ChatMessage={id:string;conversation_id:string;sender_user_id:string;
 export async function openConversation(input:{listingId?:string|null;subject:string;sellerUserId?:string|null;sellerEmail:string;isDemo?:boolean}){const user=await getCurrentUser();if(!user?.id||!user.email)throw new Error("Please log in first.");let query=supabase.from("conversations").select("*").eq("buyer_user_id",user.id);query=input.listingId?query.eq("listing_id",input.listingId):query.is("listing_id",null).eq("subject",input.subject);const {data:existing,error:findError}=await query.limit(1).maybeSingle();if(findError)throw findError;if(existing)return existing as Conversation;const {data,error}=await supabase.from("conversations").insert({listing_id:input.listingId??null,subject:input.subject,buyer_user_id:user.id,buyer_email:user.email,seller_user_id:input.sellerUserId??null,seller_email:input.sellerEmail,is_demo:Boolean(input.isDemo)}).select("*").single();if(error)throw error;return data as Conversation;}
 export async function loadMyConversations(){const {data,error}=await supabase.from("conversations").select("*").order("updated_at",{ascending:false});if(error)throw error;return (data??[]) as Conversation[];}
 
+export type SavedItemType = "listing" | "buyer_post";
+
+/** Returns the new state: true if it is now saved, false if it was removed. */
+export async function toggleSavedItem(itemType: SavedItemType, itemId: string) {
+  const { data, error } = await supabase.rpc("toggle_saved_item", {
+    p_item_type: itemType,
+    p_item_id: itemId,
+  });
+  if (error) throw error;
+  return Boolean(data);
+}
+
+export async function isItemSaved(itemType: SavedItemType, itemId: string) {
+  const user = await getCurrentUser();
+  if (!user?.id) return false;
+  const { data, error } = await supabase
+    .from("saved_items")
+    .select("id")
+    .eq("item_type", itemType)
+    .eq("item_id", itemId)
+    .maybeSingle();
+  if (error) return false;
+  return Boolean(data);
+}
+
 export type BlockedUser={id:string;blocked_id:string;reason:string|null;created_at:string;profiles?:{full_name:string|null;email:string|null}|null};
 
 /**
