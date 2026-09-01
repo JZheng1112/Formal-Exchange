@@ -1,5 +1,6 @@
 import "react-native-url-polyfill/auto";
 import { createClient } from "@supabase/supabase-js";
+import * as FileSystem from "expo-file-system/legacy";
 import * as ImageManipulator from "expo-image-manipulator";
 import { Platform } from "react-native";
 import { authStorage } from "./authStorage";
@@ -499,17 +500,10 @@ export async function updateMyProfile(payload: {
 export async function uploadAvatar(uri: string) {
   const user = await getCurrentUser();
   if (!user?.id) throw new Error("Please log in before uploading a photo.");
-  const response = await fetch(await downscale(uri, 512, 0.85));
-  if (!response.ok) throw new Error("The selected photo could not be read.");
-  const blob = await response.blob();
-  const contentType = blob.type || "image/jpeg";
-  const extension = contentType.includes("png") ? "png" : contentType.includes("webp") ? "webp" : "jpg";
-  const path = `${user.id}/avatar-${Date.now()}.${extension}`;
-  const { error } = await supabase.storage.from("avatars").upload(path, await blob.arrayBuffer(), {
-    contentType,
-    upsert: true,
-  });
-  if (error) throw error;
+  // downscale re-encodes to JPEG, so the type is known without reading the file.
+  const processed = await downscale(uri, 512, 0.85);
+  const path = `${user.id}/avatar-${Date.now()}.jpg`;
+  await uploadToStorage("avatars", path, processed, "image/jpeg", true);
   const { data } = supabase.storage.from("avatars").getPublicUrl(path);
   return data.publicUrl;
 }
@@ -901,6 +895,66 @@ export async function uploadListingImage(uri: string) {
  * phone while cutting a typical upload by well over an order of magnitude.
  * Failure is not fatal: a photo that cannot be processed is uploaded as-is.
  */
+/**
+ * Uploads a local file URI to Storage.
+ *
+ * The previous code read the file into an ArrayBuffer and handed that to
+ * supabase-js, which wraps a non-Blob body in `new Blob([body])`. React
+ * Native's Blob cannot be constructed from an ArrayBuffer, so every upload on
+ * device failed with "Creating blobs from 'ArrayBuffer' and 'ArrayBufferView'
+ * are not supported" — avatars, listing photos and message images alike. Only
+ * web worked, because a browser Blob has no such limit.
+ *
+ * On device the file is streamed straight to the Storage REST endpoint, which
+ * never materialises a Blob and does not hold the whole image in memory. Web
+ * keeps using the SDK, where the Blob path is fine.
+ */
+async function uploadToStorage(
+  bucket: string,
+  path: string,
+  uri: string,
+  contentType: string,
+  upsert = false
+) {
+  if (Platform.OS === "web") {
+    const response = await fetch(uri);
+    if (!response.ok) throw new Error("The selected file could not be read.");
+    const { error } = await supabase.storage
+      .from(bucket)
+      .upload(path, await response.blob(), { contentType, upsert });
+    if (error) throw error;
+    return;
+  }
+
+  const { data: sessionData } = await supabase.auth.getSession();
+  const token = sessionData.session?.access_token;
+  if (!token) throw new Error("Please log in again before uploading.");
+
+  const result = await FileSystem.uploadAsync(
+    `${supabaseUrl}/storage/v1/object/${bucket}/${path}`,
+    uri,
+    {
+      httpMethod: "POST",
+      uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        apikey: supabaseAnonKey as string,
+        "Content-Type": contentType,
+        "x-upsert": String(upsert),
+      },
+    }
+  );
+
+  if (result.status >= 400) {
+    let detail = result.body;
+    try {
+      const parsed = JSON.parse(result.body);
+      detail = parsed?.message ?? parsed?.error ?? result.body;
+    } catch {}
+    throw new Error(detail || `Upload failed (${result.status}).`);
+  }
+}
+
 async function downscale(uri: string, maxEdge = 1600, compress = 0.8) {
   try {
     const result = await ImageManipulator.manipulateAsync(
@@ -917,22 +971,11 @@ async function downscale(uri: string, maxEdge = 1600, compress = 0.8) {
 async function uploadImageToBucket(uri: string, bucket: string, folder: string) {
   const user = await getCurrentUser();
   if (!user?.id) throw new Error("Please log in before uploading photos.");
-  const response = await fetch(await downscale(uri));
-  if (!response.ok) throw new Error("The selected photo could not be read. Please choose it again.");
-  const blob = await response.blob();
-
-  const contentType = blob.type || (uri.toLowerCase().includes(".png") ? "image/png" : "image/jpeg");
-  const extension = contentType.includes("png") ? "png" : contentType.includes("webp") ? "webp" : "jpg";
-  const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${extension}`;
+  const processed = await downscale(uri);
+  const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
   const path = `${folder}/${user.id}/${fileName}`;
-  const body = await blob.arrayBuffer();
 
-  const { error } = await supabase.storage.from(bucket).upload(path, body, {
-    contentType,
-    upsert: false,
-  });
-
-  if (error) throw error;
+  await uploadToStorage(bucket, path, processed, "image/jpeg");
 
   const { data } = supabase.storage.from(bucket).getPublicUrl(path);
   return data.publicUrl;
@@ -1131,6 +1174,14 @@ export function conversationCounterpartId(conversation:Conversation,myUserId:str
 export async function loadConversationMessages(conversationId:string){const {data,error}=await supabase.from("messages").select("*").eq("conversation_id",conversationId).order("created_at",{ascending:true});if(error)throw error;const rows=(data??[]) as ChatMessage[];return Promise.all(rows.map(async message=>{if(!message.image_path)return message;const {data:signed,error:signedError}=await supabase.storage.from("message-images").createSignedUrl(message.image_path,86400);return {...message,image_url:signedError?null:signed.signedUrl};}));}
 export async function markConversationRead(conversationId:string){const user=await getCurrentUser();if(!user?.id||!user.email)return;const {error}=await supabase.from("messages").update({read_at:new Date().toISOString()}).eq("conversation_id",conversationId).neq("sender_user_id",user.id).is("read_at",null);if(error)throw error;}
 export async function sendConversationMessage(conversationId:string,body:string,imagePath?:string|null,imageMimeType?:string|null){const user=await getCurrentUser();if(!user?.id||!user.email)throw new Error("Please log in first.");const clean=body.trim();if(!clean&&!imagePath)throw new Error("Write a message or add a photo first.");const {error}=await supabase.from("messages").insert({conversation_id:conversationId,sender_user_id:user.id,sender_email:user.email,body:clean||"Photo",image_path:imagePath??null,image_mime_type:imageMimeType??null});if(error)throw error;await supabase.from("conversations").update({updated_at:new Date().toISOString()}).eq("id",conversationId);supabase.functions.invoke("notify-message",{body:{conversationId}}).catch(()=>{});}
-export async function uploadMessageImage(uri:string,originalName:string){const user=await getCurrentUser();if(!user?.id)throw new Error("Please log in before attaching a photo.");const response=await fetch(uri);if(!response.ok)throw new Error("The selected photo could not be read.");const blob=await response.blob();const mimeType=blob.type||"image/jpeg";const extension=mimeType.includes("png")?"png":mimeType.includes("webp")?"webp":"jpg";const safeName=originalName.replace(/[^A-Za-z0-9._-]/g,"-").slice(-80);const path=`${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}-${safeName||`photo.${extension}`}`;const {error}=await supabase.storage.from("message-images").upload(path,await blob.arrayBuffer(),{contentType:mimeType,upsert:false});if(error)throw error;return path;}
+export async function uploadMessageImage(uri:string,originalName:string){
+  const user=await getCurrentUser();
+  if(!user?.id)throw new Error("Please log in before attaching a photo.");
+  const processed=await downscale(uri);
+  const safeName=originalName.replace(/[^A-Za-z0-9._-]/g,"-").slice(-80).replace(/\.[^.]*$/,"");
+  const path=`${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}-${safeName||"photo"}.jpg`;
+  await uploadToStorage("message-images",path,processed,"image/jpeg");
+  return path;
+}
 export async function uploadMessageFile(file:Blob,originalName:string){const user=await getCurrentUser();if(!user?.id)throw new Error("Please log in before attaching a file.");const mimeType=file.type||"application/octet-stream";const safeName=originalName.replace(/[^A-Za-z0-9._-]/g,"-").slice(-100)||"attachment";const path=`${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}-${safeName}`;const {error}=await supabase.storage.from("message-images").upload(path,await file.arrayBuffer(),{contentType:mimeType,upsert:false});if(error)throw error;return path;}
 export async function savePushToken(token:string,platform:string){const user=await getCurrentUser();if(!user?.id)return;const {error}=await supabase.from("push_tokens").upsert({user_id:user.id,token,platform,updated_at:new Date().toISOString()},{onConflict:"user_id,token"});if(error)throw error;}
