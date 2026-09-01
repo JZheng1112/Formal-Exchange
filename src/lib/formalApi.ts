@@ -1162,6 +1162,51 @@ export async function isItemSaved(itemType: SavedItemType, itemId: string) {
   return Boolean(data);
 }
 
+export type SavedEntry =
+  | { kind: "listing"; savedAt: string; listing: TicketListing }
+  | { kind: "buyer_post"; savedAt: string; post: BuyerPost };
+
+/**
+ * Saved listings and buyer requests, newest first. A row whose item has since
+ * been withdrawn, sold or hidden simply drops out rather than rendering as a
+ * broken card — RLS already filters those out of the underlying queries.
+ */
+export async function loadSavedItems(): Promise<SavedEntry[]> {
+  const user = await getCurrentUser();
+  if (!user?.id) return [];
+
+  const { data: saves, error } = await supabase
+    .from("saved_items")
+    .select("item_type,item_id,created_at")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  if (!saves?.length) return [];
+
+  const listingIds = saves.filter((s) => s.item_type === "listing").map((s) => s.item_id);
+  const postIds = saves.filter((s) => s.item_type === "buyer_post").map((s) => s.item_id);
+
+  const [listingRes, postRes] = await Promise.all([
+    listingIds.length
+      ? supabase.from("ticket_listings").select("*, colleges (id,name,university,institution_type,website_url,crest_url)").in("id", listingIds)
+      : Promise.resolve({ data: [] as any[] }),
+    postIds.length
+      ? supabase.from("buyer_posts").select("*, colleges (id,name,university,institution_type,website_url,crest_url)").in("id", postIds)
+      : Promise.resolve({ data: [] as any[] }),
+  ]);
+
+  const listings = new Map((listingRes.data ?? []).map((row: any) => [row.id, row]));
+  const posts = new Map((postRes.data ?? []).map((row: any) => [row.id, row]));
+
+  return saves.flatMap((save): SavedEntry[] => {
+    if (save.item_type === "listing") {
+      const listing = listings.get(save.item_id);
+      return listing ? [{ kind: "listing", savedAt: save.created_at, listing }] : [];
+    }
+    const post = posts.get(save.item_id);
+    return post ? [{ kind: "buyer_post", savedAt: save.created_at, post }] : [];
+  });
+}
+
 export type BlockedUser={id:string;blocked_id:string;reason:string|null;created_at:string;profiles?:{full_name:string|null;email:string|null}|null};
 
 /**

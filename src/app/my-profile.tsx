@@ -406,6 +406,7 @@ export default function MyProfileScreen() {
       <View style={s.card}>
         <Text style={s.sectionTitle}>{text("Quick actions", "快捷操作")}</Text>
         <ActionBtn icon="storefront-outline" label={text("Browse tickets", "浏览票务")} onPress={() => router.push("/")} />
+        <ActionBtn icon="bookmark-outline" label={text("Saved items", "我的收藏")} onPress={() => router.push("/saved-items")} />
         <ActionBtn icon="pricetags-outline" label={text("My listings", "我的发布")} onPress={() => router.push("/my-listings")} />
         <ActionBtn icon="receipt-outline" label={text("My buying activity", "我的购买记录")} onPress={() => router.push("/my-activity")} />
         <ActionBtn icon="chatbubbles-outline" label={text("Messages", "消息")} onPress={() => router.push("/messages")} />
