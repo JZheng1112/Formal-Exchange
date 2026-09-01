@@ -1,5 +1,6 @@
 import "react-native-url-polyfill/auto";
 import { createClient } from "@supabase/supabase-js";
+import * as ImageManipulator from "expo-image-manipulator";
 import { Platform } from "react-native";
 import { authStorage } from "./authStorage";
 
@@ -498,7 +499,7 @@ export async function updateMyProfile(payload: {
 export async function uploadAvatar(uri: string) {
   const user = await getCurrentUser();
   if (!user?.id) throw new Error("Please log in before uploading a photo.");
-  const response = await fetch(uri);
+  const response = await fetch(await downscale(uri, 512, 0.85));
   if (!response.ok) throw new Error("The selected photo could not be read.");
   const blob = await response.blob();
   const contentType = blob.type || "image/jpeg";
@@ -889,10 +890,34 @@ export async function uploadListingImage(uri: string) {
   return uploadImageToBucket(uri, "listing-images", "public");
 }
 
+/**
+ * Photos came straight off the camera roll at full resolution — a recent
+ * iPhone shot is around 4200x5700 and several megabytes — and were uploaded
+ * untouched, so listing cards were fetching multi-megabyte originals to fill a
+ * 260px thumbnail. Seeded listings looked fast only because their images were
+ * already small.
+ *
+ * Downscaling to 1600px on the long edge keeps a listing photo sharp on any
+ * phone while cutting a typical upload by well over an order of magnitude.
+ * Failure is not fatal: a photo that cannot be processed is uploaded as-is.
+ */
+async function downscale(uri: string, maxEdge = 1600, compress = 0.8) {
+  try {
+    const result = await ImageManipulator.manipulateAsync(
+      uri,
+      [{ resize: { width: maxEdge } }],
+      { compress, format: ImageManipulator.SaveFormat.JPEG }
+    );
+    return result.uri;
+  } catch {
+    return uri;
+  }
+}
+
 async function uploadImageToBucket(uri: string, bucket: string, folder: string) {
   const user = await getCurrentUser();
   if (!user?.id) throw new Error("Please log in before uploading photos.");
-  const response = await fetch(uri);
+  const response = await fetch(await downscale(uri));
   if (!response.ok) throw new Error("The selected photo could not be read. Please choose it again.");
   const blob = await response.blob();
 

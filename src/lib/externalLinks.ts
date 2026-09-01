@@ -2,10 +2,12 @@ import { Linking } from "react-native";
 import type { AppLanguage } from "./language";
 
 const MARKET_URL = "https://liuxuejishi.com";
-// Open the translated proxy directly so English-mode users do not briefly land
-// on the untranslated Chinese site first.
-const MARKET_ENGLISH_URL = "https://liuxuejishi-com.translate.goog/?_x_tr_sl=zh-CN&_x_tr_tl=en&_x_tr_hl=en-GB";
 
-export function openHomeItemsMarket(language: AppLanguage) {
-  return Linking.openURL(language === "en" ? MARKET_ENGLISH_URL : MARKET_URL);
+// The English route used to go through Google's translate.goog proxy. It does
+// answer, but it took over seven seconds from the UK and that proxy is often
+// refused outright in a mobile webview, so to a user the link simply did not
+// open. Both languages now go to the real site, which responds in about three
+// seconds; Safari and Chrome both offer to translate a Chinese page on arrival.
+export function openHomeItemsMarket(_language: AppLanguage) {
+  return Linking.openURL(MARKET_URL);
 }

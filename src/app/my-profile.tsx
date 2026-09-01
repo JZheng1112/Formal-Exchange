@@ -273,7 +273,17 @@ export default function MyProfileScreen() {
 
       {/* Avatar + Name header */}
       <View style={s.profileHeader}>
-        <Pressable onPress={editing ? pickAvatar : undefined} style={s.avatarWrap} disabled={uploadingAvatar}>
+        {/*
+         * The avatar used to respond only while the profile was in edit mode,
+         * with no badge to say so, so there was no discoverable way to set a
+         * photo. It is always tappable now and always carries the camera badge.
+         */}
+        <Pressable
+          onPress={pickAvatar}
+          style={s.avatarWrap}
+          disabled={uploadingAvatar}
+          accessibilityLabel={text("Change profile photo", "更换头像")}
+        >
           {profile.avatar_url ? (
             <Image source={{ uri: profile.avatar_url }} style={s.avatar} contentFit="cover" />
           ) : (
@@ -281,11 +291,9 @@ export default function MyProfileScreen() {
               <Ionicons name="person" size={36} color="#94A3B8" />
             </View>
           )}
-          {editing && (
-            <View style={s.avatarEditBadge}>
-              {uploadingAvatar ? <ActivityIndicator size="small" color="#fff" /> : <Ionicons name="camera" size={14} color="#fff" />}
-            </View>
-          )}
+          <View style={s.avatarEditBadge}>
+            {uploadingAvatar ? <ActivityIndicator size="small" color="#fff" /> : <Ionicons name="camera" size={14} color="#fff" />}
+          </View>
         </Pressable>
         <View style={s.headerInfo}>
           <View style={s.nameRow}>

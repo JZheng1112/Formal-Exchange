@@ -36,7 +36,10 @@ export default function Home() {
   const { width } = useWindowDimensions();
   const [hydrated, setHydrated] = useState(Platform.OS !== "web");
   useEffect(() => setHydrated(true), []);
-  if (Platform.OS === "web" && hydrated && width >= 760) return <WebLanding />;
+  // The web root is a cover page at every width. Previously only desktop got
+  // it, so a phone browser landed straight in the marketplace and the site was
+  // indistinguishable from the app. "Enter web app" leads to /marketplace.
+  if (Platform.OS === "web" && hydrated) return <WebLanding />;
   return <MarketplaceHome />;
 }
 
@@ -264,10 +267,25 @@ export function MarketplaceHome() {
           {(filterKeyword || filterUni !== "all" || filterDate || filterOrigin || filterDest) ? <Text style={s.filterHint}>{text("Fill in only the fields you need, then tap Apply.","只需填写需要的字段，然后点「应用筛选」。")}</Text> : null}
         </View> : null}
         <View style={s.resultHeading}><Text style={[s.h, mobile && s.hMobile]}>{tradeMode === "swap" ? text("Tickets open to swaps", "愿意换票的帖子") : text("Latest seller listings", "最新卖家帖子")}</Text><Text style={s.resultCount}>{text(`${shown.length} listings`, `${shown.length} 条帖子`)}</Text></View>
+        {/*
+         * Two independent columns rather than a wrapping row. Wrapping makes
+         * every row as tall as its tallest card, so a card without a photo
+         * left a block of empty space beneath it. Columns let each card sit
+         * directly under the one above it.
+         */}
         <View style={s.grid}>
-          {shown.map((x) => (
-            <Card key={x.id} x={x} mobile={mobile} language={language} seller={x.seller_user_id ? sellers[x.seller_user_id] : undefined} />
-          ))}
+          <View style={s.gridColumn}>
+            {shown.filter((_, i) => i % 2 === 0).map((x) => (
+              <Card key={x.id} x={x} mobile={mobile} language={language} seller={x.seller_user_id ? sellers[x.seller_user_id] : undefined} />
+            ))}
+          </View>
+          <View style={s.gridColumn}>
+            {shown.filter((_, i) => i % 2 === 1).map((x) => (
+              <Card key={x.id} x={x} mobile={mobile} language={language} seller={x.seller_user_id ? sellers[x.seller_user_id] : undefined} />
+            ))}
+          </View>
+        </View>
+        <View style={s.grid}>
           {items.length === 0 &&
             (filter === "all" ||
               ["formal", "hall", "mcr"].includes(filter)) && (
@@ -612,6 +630,7 @@ const s = StyleSheet.create({
   // photo-bearing one stretches to match its height, leaving a large
   // empty block under the shorter card.
   grid: { marginTop: 14, flexDirection: "row", flexWrap: "wrap", gap: 12, alignItems: "flex-start" },
+  gridColumn: { flex: 1, minWidth: 0, gap: 12 },
   card: {
     width: "48%",
     minWidth: 280,
