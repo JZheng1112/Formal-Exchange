@@ -273,6 +273,14 @@ export function MarketplaceHome() {
          * left a block of empty space beneath it. Columns let each card sit
          * directly under the one above it.
          */}
+        {/*
+         * Two independent columns, each a plain vertical stack, so a card sits
+         * directly under the one above it whatever its height. A wrapping row
+         * instead makes every row as tall as its tallest card and leaves a gap
+         * under the shorter one. Cards fill their column rather than carrying
+         * their own percentage width, which is what squeezed them to a third
+         * of the screen and truncated every title.
+         */}
         <View style={s.grid}>
           <View style={s.gridColumn}>
             {shown.filter((_, i) => i % 2 === 0).map((x) => (
@@ -506,7 +514,7 @@ function Card({ x, mobile, language, seller }: { x: TicketListing; mobile: boole
         {x.open_to_swap ? <View style={s.swapBadgeOverlay}><Ionicons name="swap-horizontal" size={11} color="#78350F"/><Text style={s.swapBadgeText}>{language==="zh"?"换票":"SWAP"}</Text></View> : null}
       </View> : null}
       {!image && x.open_to_swap ? <View style={s.swapBadgeInline}><Ionicons name="swap-horizontal" size={11} color="#78350F"/><Text style={s.swapBadgeText}>{language==="zh"?"支持换票":"OPEN TO SWAP"}</Text></View> : null}
-      <Text style={[s.cardLabel, mobile && s.cardLabelMobile]} numberOfLines={1}>
+      <Text style={[s.cardLabel, mobile && s.cardLabelMobile]} numberOfLines={2}>
         {x.ticket_type ?? x.formal_type} · {x.campus ?? x.colleges.university}
       </Text>
       {travel ? (
@@ -641,7 +649,9 @@ const s = StyleSheet.create({
     borderRadius: 22,
     padding: 16,
   },
-  cardMobile: { width: "48%", minWidth: 0, borderRadius: 18, padding: 11 },
+  // Two columns leave about 190px each on a phone, which truncated every
+  // title to "Reub…". A listing card gets the full width on mobile.
+  cardMobile: { width: "100%", minWidth: 0, borderRadius: 18, padding: 14 },
   masonry: { width: "100%", flexDirection: "row", alignItems: "flex-start", gap: 9 },
   masonryColumn: { flex: 1, gap: 9 },
   masonryCard: { width: "100%", minWidth: 0, borderRadius: 18, padding: 9 },
