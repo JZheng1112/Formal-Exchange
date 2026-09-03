@@ -446,7 +446,7 @@ export default function ListTicket() {
           ]}
           onChange={(value) => changeCategory(value as ListingCategory)}
         />
-        <Pressable style={s.externalMarket} onPress={() => openHomeItemsMarket(language)}><Ionicons name="home-outline" size={18} color={C.blue} /><Text style={s.externalMarketText}>{language === "zh" ? "二手家居用品（liuxuejishi.com）" : "Second-hand home items (translated)"}</Text><Ionicons name="open-outline" size={17} color={C.blue} /></Pressable>
+        <Pressable style={s.externalMarket} onPress={() => openHomeItemsMarket(language)}><Ionicons name="home-outline" size={18} color={C.blue} /><Text style={s.externalMarketText}>{language === "zh" ? "二手家居用品（liuxuejishi.com）" : "Second-hand home items (liuxuejishi.com)"}</Text><Ionicons name="open-outline" size={17} color={C.blue} /></Pressable>
         <Label text={text("Listing city", "发布城市")} />
         <Pills value={form.campus} options={[["Oxford", text("Oxford", "牛津")], ["Cambridge", text("Cambridge", "剑桥")]]} onChange={(value) => changeCampus(value as Draft["campus"])} />
       </Card>

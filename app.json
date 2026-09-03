@@ -26,7 +26,7 @@
     ],
     "ios": {
       "bundleIdentifier": "uk.co.formalexchange.app",
-      "buildNumber": "11",
+      "buildNumber": "13",
       "supportsTablet": true,
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Add optional dining hall, previous menu, event or listing photos. Never upload a ticket, QR code or personal document.",

@@ -47,7 +47,7 @@ export default function Seller() {
         </Pressable>
         <Pressable style={s.rankings} onPress={() => openHomeItemsMarket(language)}>
           <Ionicons name="home-outline" size={19} color="#071B3A" />
-          <Text style={s.rankingsText}>{text("Second-hand home items (translated)", "二手家居用品（liuxuejishi.com）")}</Text>
+          <Text style={s.rankingsText}>{text("Second-hand home items (liuxuejishi.com)", "二手家居用品（liuxuejishi.com）")}</Text>
           <Ionicons name="open-outline" size={18} color="#071B3A" />
         </Pressable>
         {items.length === 0 ? (

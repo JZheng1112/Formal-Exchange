@@ -11,7 +11,7 @@ export default function CreatePost() {
     <Text style={s.title}>{text("What would you like to publish?", "你想发布什么？")}</Text>
     <Choice icon="search-outline" title={text("Post a buyer request", "发布求票需求")} description={text("Choose the ticket you need. Add only one optional note.", "选择所需票种，只需按需填写一条可选备注。")} go={() => router.push("/request-ticket")}/>
     <Choice icon="ticket-outline" title={text("List a ticket as a seller", "作为卖家发布票务")} description={text("Publish a Formal, journey, event or airport ride-share.", "发布 Formal、车票、活动门票或机场拼车。") } go={() => router.push("/list-ticket")}/>
-    <Choice icon="home-outline" title={text("Second-hand home items", "二手家居用品")} description={text("Open an automatically translated version of liuxuejishi.com.", "前往 liuxuejishi.com 留学集市。") } go={() => openHomeItemsMarket(language)}/>
+    <Choice icon="home-outline" title={text("Second-hand home items", "二手家居用品")} description={text("Opens liuxuejishi.com, a partner site for UK students. The site is in Chinese.", "前往 liuxuejishi.com 留学集市。") } go={() => openHomeItemsMarket(language)}/>
     <Pressable onPress={() => router.canGoBack() ? router.back() : router.replace("/")}><Text style={s.cancel}>{text("Cancel", "取消")}</Text></Pressable>
   </ScrollView>;
 }
