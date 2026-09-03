@@ -42,6 +42,8 @@ yarn-error.*
 
 # dev tools
 .claude/
+CLAUDE.md
+AGENTS.md
 
 # supabase temp
 supabase/.temp/
