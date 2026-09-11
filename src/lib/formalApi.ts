@@ -133,6 +133,7 @@ export type TicketListing = {
   arrival_time?: string | null;
   duration_minutes?: number | null;
   operator_name?: string | null;
+  railcard?: string | null;
   service_number?: string | null;
   venue_name?: string | null;
   ticket_quantity?: number | null;
@@ -660,6 +661,7 @@ export async function loadActiveListings() {
       arrival_time,
       duration_minutes,
       operator_name,
+      railcard,
       service_number,
       venue_name,
       ticket_quantity,

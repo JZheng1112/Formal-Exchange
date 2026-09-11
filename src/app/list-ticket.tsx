@@ -50,6 +50,19 @@ const C = {
 type EventKind = "admission" | "airport_ride_share";
 type ContactType = ContactMethod["type"];
 type UnderPolicy = "face_value" | "tiered";
+export type Railcard = "none" | "16-25" | "26-30" | "network" | "two-together" | "senior" | "disabled" | "other";
+// [value, English label, Chinese label]
+export const RAILCARD_OPTIONS: [Railcard, string, string][] = [
+  ["none", "No Railcard", "无"],
+  ["16-25", "16-25 Railcard", "16-25 Railcard"],
+  ["26-30", "26-30 Railcard", "26-30 Railcard"],
+  ["network", "Network Railcard", "Network Railcard"],
+  ["two-together", "Two Together", "Two Together"],
+  ["senior", "Senior Railcard", "Senior Railcard"],
+  ["disabled", "Disabled Persons", "残障人士 Railcard"],
+  ["other", "Other Railcard", "其他 Railcard"],
+];
+
 type Draft = {
   contentLanguage: "en" | "zh";
   category: ListingCategory;
@@ -88,6 +101,7 @@ type Draft = {
   arrivalDate: string;
   arrivalTime: string;
   operatorName: string;
+  railcard: Railcard;
   quantity: string;
   faceValue: string;
   askingPrice: string;
@@ -141,6 +155,7 @@ const initialDraft: Draft = {
   arrivalDate: "",
   arrivalTime: "",
   operatorName: "",
+  railcard: "none",
   quantity: "1",
   faceValue: "",
   askingPrice: "",
@@ -372,6 +387,7 @@ export default function ListTicket() {
         arrival_time: transport ? form.arrivalTime : null,
         duration_minutes: transport ? duration : null,
         operator_name: transport ? form.operatorName.trim() || null : null,
+        railcard: transport && form.ticketType === "Train" ? form.railcard : null,
         service_number: null,
         venue_name: null,
         event_kind: form.category === "event" ? form.eventKind : null,
@@ -529,6 +545,15 @@ export default function ListTicket() {
             </View>
             <Label text={text("Operator (optional)", "运营商（可选）")} />
             <Pills value={form.operatorName || "Other / not stated"} options={form.ticketType === "Coach" ? [["Oxford Tube", "Oxford Tube"], ["National Express", "National Express"], ["Megabus", "Megabus"], ["Other / not stated", "Other"]] : [["GWR", "GWR"], ["Chiltern Railways", "Chiltern"], ["CrossCountry", "CrossCountry"], ["Other / not stated", "Other"]]} onChange={(value) => set("operatorName", value === "Other / not stated" ? "" : value)} />
+            {form.ticketType === "Train" ? (
+              <>
+                <Label text={text("Was this ticket bought with a Railcard?", "这张票是否使用 Railcard 购买？")} />
+                <Pills value={form.railcard} options={RAILCARD_OPTIONS.map(([key, en, zh]) => [key, text(en, zh)])} onChange={(value) => set("railcard", value as Railcard)} />
+                <Text style={s.help}>{form.railcard === "none"
+                  ? text("A full-price ticket. Anyone can travel on it.", "全价票，任何人都可以使用。")
+                  : text("The buyer must carry the same Railcard on the train — without it the ticket is invalid and they can be fined. This is shown prominently on your listing.", "买家乘车时必须携带同类型的 Railcard，否则车票无效并可能被罚款。此信息会在帖子中醒目显示。")}</Text>
+              </>
+            ) : null}
           </Card>
           <Card title={text("3 · Tickets and price", "3 · 票数与价格")}>
             <View style={[s.row, compact && s.stack]}>

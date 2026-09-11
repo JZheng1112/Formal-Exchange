@@ -178,6 +178,8 @@ export default function ListingDetail() {
       <InfoRow icon="flag-outline" label={text("Arrival", "到达")} value={`${listing?.arrival_date ?? listing?.formal_date} · ${String(listing?.arrival_time ?? "").slice(0, 5)}`} />
       <InfoRow icon="hourglass-outline" label={text("Duration", "时长")} value={formatDuration(listing?.duration_minutes, language)} />
       {listing?.operator_name ? <InfoRow icon="business-outline" label={text("Operator", "运营商")} value={listing.operator_name} /> : null}
+      {listing?.railcard ? <InfoRow icon="card-outline" label={text("Railcard", "Railcard")} value={railcardLabel(listing.railcard, language)} /> : null}
+      {listing?.railcard && listing.railcard !== "none" ? <View style={s.railcardWarning}><Ionicons name="warning-outline" size={18} color="#9A3412" /><Text style={s.railcardWarningText}>{text(`Bought with a ${railcardLabel(listing.railcard, "en")}. You must carry the same Railcard on the train — without it the ticket is invalid and you can be fined.`, `此票使用 ${railcardLabel(listing.railcard, "zh")} 购买。乘车时必须携带同类型 Railcard，否则车票无效并可能被罚款。`)}</Text></View> : null}
       {listing?.notes ? <InfoRow icon="alert-circle-outline" label={text("Conditions", "使用条件")} value={localValue(listing.notes, language)} /> : null}
     </Section> : null}
 
@@ -230,6 +232,21 @@ function Badge({ text }: { text: string }) { return <View style={s.badge}><Text 
 function InfoRow({ icon, label, value }: { icon: any; label: string; value: string }) { return <View style={s.infoRow}><View style={s.infoIcon}><Ionicons name={icon} size={19} color={C.blue} /></View><View style={s.infoCopy}><Text style={s.infoLabel}>{label}</Text><Text style={s.infoValue}>{value}</Text></View></View>; }
 function RouteRow({ from, to }: { from: string; to: string }) { return <View style={s.route}><View style={s.routeNode}><View style={s.dot} /><Text style={s.routeText}>{from}</Text></View><View style={s.routeLine} /><View style={s.routeNode}><View style={[s.dot, s.dotEnd]} /><Text style={s.routeText}>{to}</Text></View></View>; }
 function Rule({ ok, text }: { ok: boolean; text: string }) { return <View style={s.rule}><Ionicons name={ok ? "checkmark-circle" : "close-circle"} size={21} color={ok ? "#047857" : C.danger} /><Text style={s.ruleText}>{text}</Text></View>; }
+const RAILCARD_LABELS: Record<string, [string, string]> = {
+  "none": ["No Railcard needed", "无需 Railcard"],
+  "16-25": ["16-25 Railcard", "16-25 Railcard"],
+  "26-30": ["26-30 Railcard", "26-30 Railcard"],
+  "network": ["Network Railcard", "Network Railcard"],
+  "two-together": ["Two Together Railcard", "Two Together Railcard"],
+  "senior": ["Senior Railcard", "Senior Railcard"],
+  "disabled": ["Disabled Persons Railcard", "残障人士 Railcard"],
+  "other": ["Railcard (see notes)", "Railcard（见说明）"],
+};
+function railcardLabel(value: string, language: "en" | "zh") {
+  const pair = RAILCARD_LABELS[value];
+  return pair ? (language === "zh" ? pair[1] : pair[0]) : value;
+}
+
 function formatDuration(minutes: number | null | undefined, language: "en"|"zh") { if (!minutes) return language==="zh"?"未说明":"Not stated"; const h = Math.floor(minutes / 60); const m = minutes % 60; return language==="zh"?`${h?`${h} 小时`:""}${m?` ${m} 分钟`:""}`.trim():`${h} hr${h === 1 ? "" : "s"}${m ? ` ${m} min` : ""}`; }
 function dietaryLabels(listing: TicketListing | null) { if (!listing) return []; return [[listing.vegan_available, "Vegan available"], [listing.vegetarian_available, "Vegetarian available"], [listing.halal_available, "Halal available"], [listing.gluten_free_available, "Gluten-free available"]].filter(([on]) => on).map(([, label]) => label as string); }
 
@@ -252,5 +269,5 @@ const s = StyleSheet.create({
   route: { paddingVertical: 7 }, routeNode: { flexDirection: "row", alignItems: "center", gap: 10 }, dot: { width: 12, height: 12, borderRadius: 6, backgroundColor: "#047857" }, dotEnd: { backgroundColor: "#9A3412" }, routeLine: { height: 28, width: 2, backgroundColor: "#CBD5E1", marginLeft: 5 }, routeText: { color: C.navy, fontSize: 17, fontWeight: "900", flex: 1 },
   rule: { flexDirection: "row", alignItems: "flex-start", gap: 9, paddingVertical: 8 }, ruleText: { color: C.navy, fontWeight: "800", lineHeight: 20, flex: 1 }, ruleHelp: { color: C.muted, fontSize: 12, lineHeight: 18, marginTop: 6 }, dietary: { flexDirection: "row", flexWrap: "wrap", gap: 7 }, muted: { color: C.muted }, note: { color: C.navy, lineHeight: 21, marginTop: 4 },
   safety: { flexDirection: "row", alignItems: "flex-start", gap: 11, backgroundColor: "#EFF6FF", padding: 13, borderRadius: 15 }, safetyText: { color: C.blue, lineHeight: 20, fontWeight: "700", flex: 1 },
-  actions: { flexDirection: "row", gap: 10, marginTop: 15 }, actionsCompact: { flexDirection: "column" }, primary: { minHeight: 54, flex: 1.3, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: C.navy, borderRadius: 16, paddingHorizontal: 18 }, primaryText: { color: "#fff", fontWeight: "900", fontSize: 15 }, secondary: { minHeight: 54, flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#fff", borderWidth: 1, borderColor: C.navy, borderRadius: 16, paddingHorizontal: 15 }, secondaryText: { color: C.navy, fontWeight: "900", textAlign: "center" }, pressed: { opacity: .62 }, contactStatus: { color: C.blue, fontSize: 12, lineHeight: 18, fontWeight: "800", textAlign: "center", marginTop: 9 }, contactError: { color: C.danger }, report: { minHeight: 48, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, marginTop: 8 }, reportText: { color: C.danger, fontSize: 12, fontWeight: "800" },
+  actions: { flexDirection: "row", gap: 10, marginTop: 15 }, actionsCompact: { flexDirection: "column" }, primary: { minHeight: 54, flex: 1.3, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: C.navy, borderRadius: 16, paddingHorizontal: 18 }, primaryText: { color: "#fff", fontWeight: "900", fontSize: 15 }, secondary: { minHeight: 54, flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#fff", borderWidth: 1, borderColor: C.navy, borderRadius: 16, paddingHorizontal: 15 }, secondaryText: { color: C.navy, fontWeight: "900", textAlign: "center" }, pressed: { opacity: .62 }, railcardWarning: { flexDirection: "row", alignItems: "flex-start", gap: 9, backgroundColor: "#FDF2EC", borderWidth: 1, borderColor: "#E9C4B0", borderRadius: 14, padding: 12, marginTop: 10 }, railcardWarningText: { flex: 1, color: "#7A2E10", fontSize: 13, lineHeight: 19, fontWeight: "700" }, contactStatus: { color: C.blue, fontSize: 12, lineHeight: 18, fontWeight: "800", textAlign: "center", marginTop: 9 }, contactError: { color: C.danger }, report: { minHeight: 48, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, marginTop: 8 }, reportText: { color: C.danger, fontSize: 12, fontWeight: "800" },
 });
