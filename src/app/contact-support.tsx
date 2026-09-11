@@ -128,7 +128,7 @@ export default function ContactSupportScreen() {
       </View>
 
       <View style={[styles.grid, mobile && styles.gridMobile]}>
-        <View style={[styles.formCard, mobile && styles.cardMobile]}>
+        <View style={[styles.formCard, mobile ? styles.cardMobile : styles.cardRow]}>
           <Text style={styles.sectionTitle}>{text("Submit feedback", "提交反馈")}</Text>
           <Text style={styles.sectionSubtitle}>
             {text("Tell us about a problem or suggestion. Keep it private if it should only be seen by the support team.", "请告诉我们遇到的问题或建议；如只希望支持团队查看，请设为私密。")}
@@ -201,7 +201,7 @@ export default function ContactSupportScreen() {
           </Pressable>
         </View>
 
-        <View style={[styles.commentsCard, mobile && styles.cardMobile]}>
+        <View style={[styles.commentsCard, mobile ? styles.cardMobile : styles.cardRow]}>
           <View style={styles.commentsHeader}>
             <Text style={styles.sectionTitle}>{text("Public feedback", "公开反馈")}</Text>
             <Pressable style={styles.refreshButton} onPress={refreshComments}>
@@ -273,9 +273,12 @@ const styles = StyleSheet.create({
   noticeText: { marginTop: 4, fontSize: 14, lineHeight: 22, color: COLORS.muted, fontWeight: "700" },
   grid: { gap: 18, flexDirection: "row", flexWrap: "wrap", alignItems: "flex-start" },
   gridMobile: { flexDirection: "column", gap: 12 },
-  formCard: { flex: 1, minWidth: 340, backgroundColor: COLORS.card, borderRadius: 30, borderWidth: 1, borderColor: COLORS.border, padding: 24 },
-  commentsCard: { flex: 1, minWidth: 340, backgroundColor: COLORS.card, borderRadius: 30, borderWidth: 1, borderColor: COLORS.border, padding: 24 },
-  cardMobile: { flex: 0, width: "100%", minWidth: 0, borderRadius: 20, padding: 16 },
+  formCard: { backgroundColor: COLORS.card, borderRadius: 30, borderWidth: 1, borderColor: COLORS.border, padding: 24 },
+  commentsCard: { backgroundColor: COLORS.card, borderRadius: 30, borderWidth: 1, borderColor: COLORS.border, padding: 24 },
+  // flex belongs to the side-by-side layout only: on React Native Web
+  // `flex: 0` compiles to `0 1 0%`, which collapses a column child to zero height.
+  cardRow: { flex: 1, minWidth: 340 },
+  cardMobile: { width: "100%", borderRadius: 20, padding: 16 },
   sectionTitle: { fontSize: 22, fontWeight: "900", color: COLORS.navy },
   sectionSubtitle: { marginTop: 6, marginBottom: 14, fontSize: 14, lineHeight: 22, color: COLORS.muted },
   label: { marginTop: 14, marginBottom: 8, fontSize: 13, fontWeight: "900", color: COLORS.muted },
