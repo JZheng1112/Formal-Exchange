@@ -3,7 +3,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Image } from "expo-image";
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from "react-native";
-import { College, ListingCategory, SellerInfo, TicketListing, loadColleges, loadMyProfile, loadSellerProfiles, loadVisibleActiveListings } from "../lib/formalApi";
+import { College, ListingCategory, SellerInfo, TicketListing, University, loadColleges, loadMyProfile, loadSellerProfiles, loadVisibleActiveListings } from "../lib/formalApi";
 import { useAppLanguage } from "../lib/language";
 import { openHomeItemsMarket } from "../lib/externalLinks";
 
@@ -20,7 +20,7 @@ export default function FindTicket(){
   const [sellers,setSellers]=useState<Record<string,SellerInfo>>({});
   const [category,setCategory]=useState<Category>("formal");
   const [sameCity,setSameCity]=useState(false);
-  const [myCity,setMyCity]=useState<"Oxford"|"Cambridge">("Oxford");
+  const [myCity,setMyCity]=useState<University>("Oxford");
   const [collegeId,setCollegeId]=useState(params.collegeId??"all");
   const [date,setDate]=useState(params.date??"");
   const [budget,setBudget]=useState("");

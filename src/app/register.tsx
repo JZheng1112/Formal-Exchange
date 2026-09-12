@@ -16,7 +16,7 @@ import {
 
 import {
   isAcUkEmail,
-  isOxbridgeEmail,
+  isFormalEligibleEmail,
   passwordStrength,
   resendVerificationEmail,
   signUpWithEmail,
@@ -119,7 +119,7 @@ export default function RegisterScreen() {
   const strength = useMemo(() => passwordStrength(password), [password]);
   const emailIsValid = email.trim().length > 0 && email.includes("@") && email.includes(".");
   const emailIsAcUk = isAcUkEmail(email);
-  const emailIsOxbridge = isOxbridgeEmail(email);
+  const emailIsOxbridge = isFormalEligibleEmail(email);
   const passwordsMatch =
     confirmPassword.length > 0 && password === confirmPassword;
 
@@ -364,7 +364,7 @@ export default function RegisterScreen() {
         <Text style={styles.kicker}>{text("CREATE YOUR ACCOUNT", "创建账户")}</Text>
         <Text style={styles.title}>{text("Register", "注册")}</Text>
         <Text style={styles.subtitle}>
-          {text("Register with any email address. Users with a UK .ac.uk academic email are automatically verified; Oxford and Cambridge accounts can also publish Formal tickets. You can verify later in My Profile.", "使用任意邮箱注册。使用英国 .ac.uk 高校邮箱注册将自动获得认证；牛津和剑桥账号还可发布 Formal 票。你也可以稍后在「我的资料」中进行认证。")}
+          {text("Register with any email address. Users with a UK .ac.uk academic email are automatically verified; Oxford, Cambridge and Durham accounts can also publish Formal tickets. You can verify later in My Profile.", "使用任意邮箱注册。使用英国 .ac.uk 高校邮箱注册将自动获得认证；牛津、剑桥和杜伦账号还可发布 Formal 票。你也可以稍后在「我的资料」中进行认证。")}
         </Text>
 
         <Text style={styles.label}>{text("Display name / nickname", "显示名称 / 昵称")}</Text>

@@ -33,7 +33,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 });
 
-export type University = "Oxford" | "Cambridge";
+export type University = "Oxford" | "Cambridge" | "Durham";
 
 export type College = {
   id: string;
@@ -300,15 +300,29 @@ export type ListingReport = {
   created_at: string;
 };
 
-export function isOxbridgeEmail(email: string) {
-  const domain = email.trim().toLowerCase().split("@")[1] ?? "";
-  return (
-    domain === "ox.ac.uk" ||
-    domain.endsWith(".ox.ac.uk") ||
-    domain === "cam.ac.uk" ||
-    domain.endsWith(".cam.ac.uk")
-  );
+/**
+ * Domains whose confirmed holders may publish Formal tickets. Both shapes
+ * are accepted for each: the bare domain, and a college or department
+ * prefix such as chads.durham.ac.uk. The leading dot is what stops
+ * fakeox.ac.uk matching ox.ac.uk.
+ *
+ * Kept in step with university_from_email() in the database, which is
+ * where the rule is actually enforced.
+ */
+const FORMAL_DOMAINS: ReadonlyArray<readonly [string, University]> = [
+  ["ox.ac.uk", "Oxford"],
+  ["cam.ac.uk", "Cambridge"],
+  ["durham.ac.uk", "Durham"],
+  ["dur.ac.uk", "Durham"],
+];
+
+/** True when the address may publish Formal tickets once confirmed. */
+export function isFormalEligibleEmail(email: string) {
+  return inferUniversityFromEmail(email) !== null;
 }
+
+/** @deprecated Durham is eligible too — use isFormalEligibleEmail. */
+export const isOxbridgeEmail = isFormalEligibleEmail;
 
 export function isAcUkEmail(email: string) {
   const domain = email.trim().toLowerCase().split("@")[1] ?? "";
@@ -317,8 +331,9 @@ export function isAcUkEmail(email: string) {
 
 export function inferUniversityFromEmail(email: string): University | null {
   const domain = email.trim().toLowerCase().split("@")[1] ?? "";
-  if (domain === "ox.ac.uk" || domain.endsWith(".ox.ac.uk")) return "Oxford";
-  if (domain === "cam.ac.uk" || domain.endsWith(".cam.ac.uk")) return "Cambridge";
+  for (const [suffix, university] of FORMAL_DOMAINS) {
+    if (domain === suffix || domain.endsWith("." + suffix)) return university;
+  }
   return null;
 }
 

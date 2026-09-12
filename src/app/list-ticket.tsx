@@ -21,6 +21,7 @@ import {
   College,
   ContactMethod,
   ListingCategory,
+  University,
   createTicketListing,
   getCurrentUser,
   loadColleges,
@@ -66,7 +67,7 @@ export const RAILCARD_OPTIONS: [Railcard, string, string][] = [
 type Draft = {
   contentLanguage: "en" | "zh";
   category: ListingCategory;
-  campus: "Oxford" | "Cambridge";
+  campus: University;
   collegeId: string;
   formalType: "Hall Formal" | "MCR Guest Dinner" | "Guest Night" | "Special Formal";
   dressCode: "Smart" | "Smart Casual" | "Casual";
@@ -219,7 +220,7 @@ export default function ListTicket() {
     setStatus(text("Ticket type changed. Fields that no longer apply were cleared.", "票务类型已更改，不再适用的字段已清空。"));
   }
 
-  function changeCampus(campus: "Oxford" | "Cambridge") {
+  function changeCampus(campus: University) {
     setForm((old) => ({
       ...old,
       campus,
@@ -268,7 +269,7 @@ export default function ListTicket() {
     if (!form.date || !form.time) return text("Choose the date and time.", "请选择日期和时间。");
     if (!Number(form.quantity) || Number(form.quantity) < 1) return text("Choose at least one place.", "请至少选择 1 个名额。");
     if (form.category === "formal") {
-      if (!isOxbridge) return text("Only verified Oxford or Cambridge accounts can publish Formal tickets.", "只有已验证的牛津或剑桥账号可以发布 Formal 票。");
+      if (!isOxbridge) return text("Formal tickets can only be published from a verified Oxford, Cambridge or Durham account.", "只有已验证的牛津、剑桥或杜伦账号可以发布 Formal 票。");
       if (!form.collegeId) return text("Choose the college hosting the Formal.", "请选择举办 Formal 的学院。");
       if (!Number(form.studentSeats) && !Number(form.guestSeats)) return text("Add at least one member or guest place.", "请至少填写 1 个本院成员或宾客名额。");
       if (!form.studentFace || !form.studentPrice) return text("Enter the member face value and asking price.", "请填写本院成员票原价和售价。");
@@ -470,7 +471,7 @@ export default function ListTicket() {
       {form.category === "formal" ? (
         <>
           <Card title={text("2 · Formal and places", "2 · Formal 与名额")}>
-            {!isOxbridge ? <Notice text={text("You may register with any email, but only a verified Oxford or Cambridge account may publish Formal tickets. Other ticket types remain available.", "任何邮箱都可注册，但只有已验证的牛津或剑桥账号可以发布 Formal 票；其他票务类型仍可使用。") } danger /> : null}
+            {!isOxbridge ? <Notice text={text("You may register with any email, but publishing a Formal ticket needs a verified Oxford, Cambridge or Durham account. Other ticket types remain available.", "任何邮箱都可注册，但发布 Formal 票需要已验证的牛津、剑桥或杜伦账号；其他票务类型仍可使用。") } danger /> : null}
             <Label text={text("Formal type", "Formal 类型")} />
             <Pills value={form.formalType} options={[["Hall Formal", text("Hall Formal", "学院 Formal")], ["MCR Guest Dinner", text("MCR Guest Dinner", "MCR 宾客晚宴")], ["Guest Night", text("Guest Night", "宾客之夜")], ["Special Formal", text("Other Formal", "其他 Formal")]]} onChange={(value) => set("formalType", value as Draft["formalType"])} />
             <CollegePicker colleges={campusColleges} selectedId={form.collegeId} onSelect={(id) => set("collegeId", id)} />

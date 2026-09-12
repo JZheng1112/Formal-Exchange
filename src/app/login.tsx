@@ -74,7 +74,7 @@ export default function LoginScreen() {
 
         <Text style={styles.title}>{text("Log in", "登录")}</Text>
         <Text style={styles.subtitle}>
-          {text("Sign in with your registered email. Verified .ac.uk accounts enjoy a verified badge; Oxford and Cambridge accounts can also publish Formal tickets.", "使用已注册的邮箱登录。经认证的 .ac.uk 账号享有认证标识；牛津和剑桥账号还可发布 Formal 票。")}
+          {text("Sign in with your registered email. Verified .ac.uk accounts enjoy a verified badge; Oxford, Cambridge and Durham accounts can also publish Formal tickets.", "使用已注册的邮箱登录。经认证的 .ac.uk 账号享有认证标识；牛津、剑桥和杜伦账号还可发布 Formal 票。")}
         </Text>
 
         <View style={styles.notice}>

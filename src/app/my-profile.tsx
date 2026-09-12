@@ -25,7 +25,7 @@ import {
   unblockUser,
   deleteMyAccount,
   isAcUkEmail,
-  isOxbridgeEmail,
+  isFormalEligibleEmail,
   loadColleges,
   loadMyProfile,
   sendVerificationCode,
@@ -511,7 +511,7 @@ export default function MyProfileScreen() {
                   style={s.input}
                 />
 
-                {verifyEmail.length > 0 && isAcUkEmail(verifyEmail) && isOxbridgeEmail(verifyEmail) && (
+                {verifyEmail.length > 0 && isAcUkEmail(verifyEmail) && isFormalEligibleEmail(verifyEmail) && (
                   <View style={s.verifyHint}>
                     <Ionicons name="checkmark-circle" size={16} color={C.successText} />
                     <Text style={s.verifyHintText}>{text("Oxbridge email — will unlock Formal listing privileges.", "牛剑邮箱 — 将解锁 Formal 票发布权限。")}</Text>
@@ -523,7 +523,7 @@ export default function MyProfileScreen() {
                 </Pressable>
 
                 <Text style={s.verifyNote}>
-                  {text("We strongly recommend Oxford and Cambridge students verify their accounts. Only verified Oxbridge accounts can publish Formal tickets, and the verified badge helps build trust with buyers.", "我们强烈建议牛津和剑桥的学生进行认证。只有认证的牛剑账号才能发布 Formal 票，认证标识也有助于获得买家信任。")}
+                  {text("We strongly recommend Oxford, Cambridge and Durham students verify their accounts. Formal tickets can only be published from a verified account there, and the badge helps build trust with buyers.", "我们强烈建议牛津、剑桥和杜伦的学生进行认证。只有这些学校的认证账号才能发布 Formal 票，认证标识也有助于获得买家信任。")}
                 </Text>
               </>
             ) : (
