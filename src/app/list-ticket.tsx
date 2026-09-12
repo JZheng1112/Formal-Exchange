@@ -464,14 +464,14 @@ export default function ListTicket() {
           onChange={(value) => changeCategory(value as ListingCategory)}
         />
         <Pressable style={s.externalMarket} onPress={() => openHomeItemsMarket(language)}><Ionicons name="home-outline" size={18} color={C.blue} /><Text style={s.externalMarketText}>{language === "zh" ? "二手家居用品（liuxuejishi.com）" : "Second-hand home items (liuxuejishi.com)"}</Text><Ionicons name="open-outline" size={17} color={C.blue} /></Pressable>
-        <Label text={text("Listing city", "发布城市")} />
-        <Pills value={form.campus} options={[["Oxford", text("Oxford", "牛津")], ["Cambridge", text("Cambridge", "剑桥")]]} onChange={(value) => changeCampus(value as Draft["campus"])} />
       </Card>
 
       {form.category === "formal" ? (
         <>
           <Card title={text("2 · Formal and places", "2 · Formal 与名额")}>
             {!isOxbridge ? <Notice text={text("You may register with any email, but publishing a Formal ticket needs a verified Oxford, Cambridge or Durham account. Other ticket types remain available.", "任何邮箱都可注册，但发布 Formal 票需要已验证的牛津、剑桥或杜伦账号；其他票务类型仍可使用。") } danger /> : null}
+            <Label text={text("University", "学校")} />
+            <Pills value={form.campus} options={[["Oxford", text("Oxford", "牛津")], ["Cambridge", text("Cambridge", "剑桥")], ["Durham", text("Durham", "杜伦")]]} onChange={(value) => changeCampus(value as Draft["campus"])} />
             <Label text={text("Formal type", "Formal 类型")} />
             <Pills value={form.formalType} options={[["Hall Formal", text("Hall Formal", "学院 Formal")], ["MCR Guest Dinner", text("MCR Guest Dinner", "MCR 宾客晚宴")], ["Guest Night", text("Guest Night", "宾客之夜")], ["Special Formal", text("Other Formal", "其他 Formal")]]} onChange={(value) => set("formalType", value as Draft["formalType"])} />
             <CollegePicker colleges={campusColleges} selectedId={form.collegeId} onSelect={(id) => set("collegeId", id)} />

@@ -45,7 +45,7 @@ export default function BuyerRequestDetail(){
     {!demo&&post?.contact_value?<Pressable style={({pressed}) => [s.secondary, pressed && s.pressed]} onPress={()=>setShowContact(value=>!value)}><Text style={s.secondaryText}>{showContact?text("Hide external contact","隐藏外部联系方式"):text("Show buyer’s chosen contact","显示买家选择的联系方式")}</Text></Pressable>:null}
   </ScrollView>;
 }
-function localValue(value:string,language:"en"|"zh"){if(language==="en")return value;const map:Record<string,string>={formal:"FORMAL",coach_train:"大巴 / 火车",event:"其他门票 / 拼车","Hall Formal":"学院 Formal","MCR Guest Dinner":"MCR 宾客晚宴",Train:"火车",Coach:"大巴",Oxford:"牛津",Cambridge:"剑桥","Any city":"任意城市","In-app message":"应用内私信",Email:"电子邮件",WeChat:"微信"};return map[value]??value;}
+function localValue(value:string,language:"en"|"zh"){if(language==="en")return value;const map:Record<string,string>={formal:"FORMAL",coach_train:"大巴 / 火车",event:"其他门票 / 拼车","Hall Formal":"学院 Formal","MCR Guest Dinner":"MCR 宾客晚宴",Train:"火车",Coach:"大巴",Oxford:"牛津",Cambridge:"剑桥",Durham:"杜伦","Any city":"任意城市","In-app message":"应用内私信",Email:"电子邮件",WeChat:"微信"};return map[value]??value;}
 function demoNote(index:number){return ["希望购买一个符合资格的牛津学院宾客名额。请说明举办学院、入场规则、证件要求以及是否需要本院成员陪同。","两名已验证的剑桥成员希望购买符合资格的宾客名额。如卖家确认转让规则，学院选择可以灵活。","17:00 后时间灵活；优先考虑可配合 Railcard 使用的车票。"][index]??""}
 function Section({title,children}:{title:string;children:any}){return <View style={s.section}><Text style={s.sectionTitle}>{title}</Text>{children}</View>}
 function Row({icon,label,value}:{icon:any;label:string;value:string}){return <View style={s.row}><View style={s.rowIcon}><Ionicons name={icon} size={19} color="#123C69"/></View><View style={s.flex}><Text style={s.rowLabel}>{label}</Text><Text style={s.rowValue}>{value}</Text></View></View>}

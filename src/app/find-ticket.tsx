@@ -94,7 +94,7 @@ export default function FindTicket(){
               <Text style={[s.sameCityText,sameCity&&s.sameCityTextOn]}>{text("My city only","只看同城")}</Text>
             </Pressable>
             <View style={s.cityPills}>
-              {(["Oxford","Cambridge"] as const).map(city=>
+              {(["Oxford","Cambridge","Durham"] as const).map(city=>
                 <Pressable key={city} style={[s.city,city===myCity&&s.cityOn]} onPress={()=>setMyCity(city)}>
                   <Text style={[s.cityText,city===myCity&&s.cityTextOn]}>{language==="zh"?(city==="Oxford"?"牛津":"剑桥"):city}</Text>
                 </Pressable>
@@ -209,7 +209,7 @@ function ListingCard({item,mobile,seller}:{item:TicketListing;mobile:boolean;sel
 }
 
 function formatDuration(minutes:number|null|undefined,language:"en"|"zh"){if(!minutes)return language==="zh"?"未说明时长":"Duration N/A";const h=Math.floor(minutes/60),m=minutes%60;return language==="zh"?`${h}h${m?` ${m}m`:""}`:`${h}h${m?` ${m}m`:""}`;}
-function localValue(value:string|null|undefined,language:"en"|"zh"){if(!value||language==="en")return value??"";const map:Record<string,string>={Oxford:"牛津",Cambridge:"剑桥","Hall Formal":"学院 Formal","MCR Guest Dinner":"MCR 宾客晚宴","Guest Night":"宾客之夜","Special Formal":"特别 Formal",Coach:"大巴",Train:"火车","Airport ride-share":"机场拼车","Other event":"其他活动"};return map[value]??value;}
+function localValue(value:string|null|undefined,language:"en"|"zh"){if(!value||language==="en")return value??"";const map:Record<string,string>={Oxford:"牛津",Cambridge:"剑桥",Durham:"杜伦","Hall Formal":"学院 Formal","MCR Guest Dinner":"MCR 宾客晚宴","Guest Night":"宾客之夜","Special Formal":"特别 Formal",Coach:"大巴",Train:"火车","Airport ride-share":"机场拼车","Other event":"其他活动"};return map[value]??value;}
 
 const web={width:"100%",height:46,border:`1px solid ${C.border}`,borderRadius:12,padding:"0 12px",backgroundColor:"#F8FAFC",boxSizing:"border-box",color:C.navy,fontSize:14};
 const s=StyleSheet.create({
