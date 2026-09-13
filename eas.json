@@ -28,6 +28,10 @@
       "ios": {
         "ascAppId": "6806546708",
         "bundleIdentifier": "uk.co.formalexchange.app"
+      },
+      "android": {
+        "serviceAccountKeyPath": "./google-service-account.json",
+        "track": "internal"
       }
     }
   }

@@ -3,7 +3,7 @@
     "name": "Formal Exchange",
     "slug": "formal-exchange",
     "description": "A Formal-first Oxford and Cambridge marketplace for permitted listings, buyer requests, direct ticket swaps, travel tickets, ride-shares, college visits and in-app messaging.",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "icon": "./src/assets/formal-exchange-shield.png",
     "scheme": "formalexchange",
     "orientation": "portrait",
@@ -26,7 +26,7 @@
     ],
     "ios": {
       "bundleIdentifier": "uk.co.formalexchange.app",
-      "buildNumber": "14",
+      "buildNumber": "15",
       "supportsTablet": true,
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Add optional dining hall, previous menu, event or listing photos. Never upload a ticket, QR code or personal document.",
@@ -35,7 +35,7 @@
     },
     "android": {
       "package": "uk.co.formalexchange.app",
-      "versionCode": 4,
+      "versionCode": 5,
       "blockedPermissions": [
         "android.permission.RECORD_AUDIO"
       ],
