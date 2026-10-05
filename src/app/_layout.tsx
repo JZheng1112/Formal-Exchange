@@ -111,12 +111,8 @@ function UpdatePrompt() {
         Alert.alert(
           text("A new version is ready", "有新版本可用"),
           text(
-            "Tap Update now and the app restarts into the new version in a few seconds. Anything you were typing is not saved, so finish it first if you need to.
-
-Choose Later and the update installs itself next time you fully close and reopen the app.",
-            "点「立即更新」，APP 会在几秒内自动重启到新版。正在填写的内容不会保存，需要的话先填完再更新。
-
-选「稍后」，下次把 APP 彻底关闭再打开时会自动更新。",
+            "Tap Update now and the app restarts into the new version in a few seconds. Anything you were typing is not saved, so finish it first if you need to.\n\nChoose Later and the update installs itself next time you fully close and reopen the app.",
+            "点「立即更新」，APP 会在几秒内自动重启到新版。正在填写的内容不会保存，需要的话先填完再更新。\n\n选「稍后」，下次把 APP 彻底关闭再打开时会自动更新。",
           ),
           [
             { text: text("Later", "稍后"), style: "cancel" },
