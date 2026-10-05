@@ -1,7 +1,8 @@
 import { StatusBar } from "expo-status-bar";
 import { Stack, usePathname } from "expo-router";
 import { useEffect, useState } from "react";
-import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { AppState, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import * as Updates from "expo-updates";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { recordPageView } from "../lib/formalApi";
@@ -67,8 +68,49 @@ function SafeFrame({ children }: { children: React.ReactNode }) {
   return <View style={{ flex: 1, paddingTop: insets.top }}>{children}</View>;
 }
 
+/**
+ * By default expo-updates downloads a new update in the background and only
+ * runs it on the next cold start, so people kept seeing the old version
+ * after opening the app. Check on launch and apply straight away; on return
+ * from the background, only after a long absence so nobody is reloaded in
+ * the middle of what they were doing.
+ */
+const RESUME_CHECK_AFTER_MS = 10 * 60 * 1000;
+
+function useApplyUpdates() {
+  useEffect(() => {
+    if (Platform.OS === "web" || __DEV__ || !Updates.isEnabled) return;
+
+    let checking = false;
+    async function apply() {
+      if (checking) return;
+      checking = true;
+      try {
+        const { isAvailable } = await Updates.checkForUpdateAsync();
+        if (!isAvailable) return;
+        const { isNew } = await Updates.fetchUpdateAsync();
+        if (isNew) await Updates.reloadAsync();
+      } catch {
+        // Offline or the update server is unreachable: keep running what we have.
+      } finally {
+        checking = false;
+      }
+    }
+
+    apply();
+
+    let backgroundedAt = 0;
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "background") backgroundedAt = Date.now();
+      if (state === "active" && backgroundedAt && Date.now() - backgroundedAt > RESUME_CHECK_AFTER_MS) apply();
+    });
+    return () => sub.remove();
+  }, []);
+}
+
 export default function RootLayout() {
   const pathname = usePathname();
+  useApplyUpdates();
 
   useEffect(() => {
     if (pathname) recordPageView(pathname).catch(() => {});
