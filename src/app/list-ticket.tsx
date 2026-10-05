@@ -30,6 +30,7 @@ import {
   uploadListingImage,
 } from "../lib/formalApi";
 import { useAppLanguage } from "../lib/language";
+import { DatePickerField, TimePickerField } from "../components/PickerFields";
 import { openHomeItemsMarket } from "../lib/externalLinks";
 
 const DRAFT_KEY = "formal-exchange-listing-draft-v2";
@@ -338,11 +339,15 @@ export default function ListTicket() {
       const dietaryOriginal = formal ? form.dietaryNote.trim() : "";
       const noteOriginal = form.notes.trim();
       const targetLanguage = language === "en" ? "zh" : "en";
+      // Translation is a convenience. If the service is down, publish with
+      // the original text; readers in the other language see that instead.
+      const translateOrKeep = (value: string) =>
+        value ? translateContent(value, language, targetLanguage).catch(() => "") : Promise.resolve("");
       const [eventNameTranslated,eventDescriptionTranslated,dietaryTranslated,noteTranslated] = await Promise.all([
-        eventNameOriginal ? translateContent(eventNameOriginal, language, targetLanguage) : "",
-        eventDescriptionOriginal ? translateContent(eventDescriptionOriginal, language, targetLanguage) : "",
-        dietaryOriginal ? translateContent(dietaryOriginal, language, targetLanguage) : "",
-        noteOriginal && !transport ? translateContent(noteOriginal, language, targetLanguage) : "",
+        translateOrKeep(eventNameOriginal),
+        translateOrKeep(eventDescriptionOriginal),
+        translateOrKeep(dietaryOriginal),
+        transport ? "" : translateOrKeep(noteOriginal),
       ]);
       setStatus(text("Publishing listing…", "正在发布帖子…"));
       await createTicketListing({
@@ -576,8 +581,8 @@ export default function ListTicket() {
         <>
           <Card title={rideShare ? text("2 · Your ride", "2 · 拼车行程") : text("2 · Event ticket", "2 · 活动门票")}>
             {form.eventKind === "admission" ? <TextField label={text("Event name", "活动名称")} value={form.eventName} setValue={(value) => set("eventName", value)} placeholder={text("Concert, museum, theatre or other event", "音乐会、博物馆、剧院或其他活动") } /> : <View style={[s.row, compact && s.stack]}>
-              <TextField label={text("Pickup", "上车地点")} value={form.origin} setValue={(value) => set("origin", value)} placeholder={text("College or city pickup", "学院或城市上车地点") } />
-              <TextField label={text("Airport / destination", "机场 / 目的地")} value={form.destination} setValue={(value) => set("destination", value)} placeholder={text("Heathrow Terminal 5", "希思罗机场 5 号航站楼") } />
+              <TextField label={text("Pickup", "上车地点")} value={form.origin} setValue={(value) => set("origin", value)} placeholder={text("Airport, station, college or address", "机场、车站、学院或地址") } />
+              <TextField label={text("Destination", "目的地")} value={form.destination} setValue={(value) => set("destination", value)} placeholder={text("Airport, station, college or address", "机场、车站、学院或地址") } />
             </View>}
             <DateTimeRow compact={compact} date={form.date} time={form.time} setDate={(value) => set("date", value)} setTime={(value) => set("time", value)} />
             <NumberField label={form.eventKind === "admission" ? text("Places available", "可用名额") : text("Seats to share", "可拼车名额")} value={form.quantity} setValue={(value) => set("quantity", value)} />
@@ -683,11 +688,11 @@ function DateTimeRow({ compact, date, time, setDate, setTime }: { compact: boole
 }
 
 function DateField({ label, value, setValue }: { label: string; value: string; setValue: (value: string) => void }) {
-  return <View style={s.flexField}><Label text={label} />{Platform.OS === "web" ? <WebInput type="date" value={value} onChange={(event: any) => setValue(event.target.value)} style={webInput} /> : <TextInput style={s.input} value={value} onChangeText={setValue} placeholder="YYYY-MM-DD" />}</View>;
+  return <View style={s.flexField}><Label text={label} /><DatePickerField value={value} onChange={setValue} style={s.pickerField} /></View>;
 }
 
 function TimeField({ label, value, setValue }: { label: string; value: string; setValue: (value: string) => void }) {
-  return <View style={s.flexField}><Label text={label} />{Platform.OS === "web" ? <WebInput type="time" value={value} onChange={(event: any) => setValue(event.target.value)} style={webInput} /> : <TextInput style={s.input} value={value} onChangeText={setValue} placeholder="18:30" />}</View>;
+  return <View style={s.flexField}><Label text={label} /><TimePickerField value={value} onChange={setValue} style={s.pickerField} /></View>;
 }
 
 function Toggle({ label, value, onChange }: { label: string; value: boolean; onChange: (value: boolean) => void }) {
@@ -755,6 +760,7 @@ const s = StyleSheet.create({
   row: { flexDirection: "row", gap: 12, alignItems: "flex-start" },
   stack: { flexDirection: "column", gap: 0 },
   flexField: { flex: 1, minWidth: 0, width: "100%" },
+  pickerField: { minHeight: 52, borderColor: C.border, backgroundColor: C.surface },
   input: { minHeight: 52, width: "100%", borderWidth: 1, borderColor: C.border, borderRadius: 14, backgroundColor: C.surface, paddingHorizontal: 13, color: C.navy, fontSize: 16 },
   textArea: { minHeight: 94, paddingTop: 12, paddingBottom: 12 },
   moneyWrap: { minHeight: 52, width: "100%", flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: C.border, borderRadius: 14, backgroundColor: C.surface, paddingHorizontal: 13 },

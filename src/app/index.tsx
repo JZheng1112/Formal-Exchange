@@ -22,6 +22,7 @@ import {
   loadSellerProfiles,
 } from "../lib/formalApi";
 import { useAppLanguage } from "../lib/language";
+import { DatePickerField } from "../components/PickerFields";
 import { openAppStore, openHomeItemsMarket } from "../lib/externalLinks";
 const F = [
   ["all", "All", "全部"],
@@ -254,12 +255,7 @@ export function MarketplaceHome() {
           </View> : null}
           <View style={s.filterRow}>
             <Text style={s.filterLabel}>{text("Date","日期")}</Text>
-            <View style={s.filterInputRow}>
-              <Ionicons name="calendar-outline" size={15} color="#94A3B8" />
-              {Platform.OS === "web"
-                ? <input type="date" value={filterDate} onChange={(e: any) => setFilterDate(e.target.value)} style={{flex:1,height:36,border:"1px solid #E2E8F0",borderRadius:10,paddingLeft:12,paddingRight:8,fontSize:13,color:"#071B3A",backgroundColor:"#FAFAF8",fontFamily:"inherit"} as any} />
-                : <TextInput style={s.filterInput} placeholder="YYYY-MM-DD" placeholderTextColor="#94A3B8" value={filterDate} onChangeText={setFilterDate} maxLength={10} />}
-            </View>
+            <DatePickerField value={filterDate} onChange={setFilterDate} clearable placeholder={text("Any date","任意日期")} style={{ minHeight: 38, borderRadius: 10 }} textStyle={{ fontSize: 13 }} />
           </View>
           <View style={s.filterActions}>
             <Pressable style={[s.filterApply, !hasUnapplied && s.filterApplyDisabled]} onPress={applyFilters} disabled={!hasUnapplied}>
@@ -288,7 +284,7 @@ export function MarketplaceHome() {
          * their own percentage width, which is what squeezed them to a third
          * of the screen and truncated every title.
          */}
-        {filter === "rideshare" ? <Pressable style={s.landingSwapHero} onPress={() => router.push("/list-ticket?type=rideshare")}><View style={s.landingSwapHeroIcon}><Ionicons name="airplane" size={22} color="#fff" /></View><View style={{ flex: 1 }}><Text style={s.landingSwapHeroTitle}>{text("Going to or from the airport? Post your ride", "接机送机？发帖找人拼车")}</Text><Text style={s.landingSwapHeroText}>{text("Open to every UK university and any email. Add your pickup, airport and time, and people travelling the same way can message you.", "全英任何学校、任何邮箱都能发。填上车点、机场和时间，同天同向的人会私信你。")}</Text></View><Ionicons name="add-circle" size={24} color="#9A3412" /></Pressable> : null}
+        {filter === "rideshare" ? <Pressable style={s.landingSwapHero} onPress={() => router.push("/list-ticket?type=rideshare")}><View style={s.landingSwapHeroIcon}><Ionicons name="airplane" size={22} color="#fff" /></View><View style={{ flex: 1 }}><Text style={s.landingSwapHeroTitle}>{text("Going to or from the airport? Post your ride", "接机送机？发帖找人拼车")}</Text><Text style={s.landingSwapHeroText}>{text("Open to every UK university and any email. Add your pickup, destination and time, and people travelling the same way can message you.", "全英任何学校、任何邮箱都能发。填上车地点、目的地和时间，同天同向的人会私信你。")}</Text></View><Ionicons name="add-circle" size={24} color="#9A3412" /></Pressable> : null}
         <View style={s.grid}>
           <View style={s.gridColumn}>
             {shown.filter((_, i) => i % 2 === 0).map((x) => (

@@ -5,6 +5,7 @@ import { Image } from "expo-image";
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from "react-native";
 import { College, ListingCategory, SellerInfo, TicketListing, University, loadColleges, loadMyProfile, loadSellerProfiles, loadVisibleActiveListings } from "../lib/formalApi";
 import { useAppLanguage } from "../lib/language";
+import { DatePickerField } from "../components/PickerFields";
 import { openHomeItemsMarket } from "../lib/externalLinks";
 
 const C={bg:"#F5F1E8",card:"#fff",navy:"#071B3A",blue:"#123C69",muted:"#64748B",border:"#E2E8F0"};
@@ -148,9 +149,7 @@ export default function FindTicket(){
         {/* Date filter */}
         <View style={s.field}>
           <Text style={s.label}>{text("Date","日期")}</Text>
-          {Platform.OS==="web"
-            ? <Input type="date" value={date} onChange={(e:any)=>setDate(e.target.value)} style={web}/>
-            : <TextInput style={s.input} value={date} onChangeText={setDate} placeholder="YYYY-MM-DD" placeholderTextColor="#94A3B8"/>}
+          <DatePickerField value={date} onChange={setDate} clearable placeholder={text("Any date","任意日期")}/>
         </View>
 
         {/* Budget filter */}
