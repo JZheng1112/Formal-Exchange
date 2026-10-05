@@ -101,7 +101,7 @@ export function MarketplaceHome() {
       (filter === "train" && ["Train", "Train ticket"].includes(x.ticket_type ?? "")) ||
       (filter === "event" && x.listing_category === "event");
     const isFormal = (x.listing_category ?? "formal") === "formal";
-    const uni = x.campus ?? x.colleges?.university;
+    const uni = x.campus ?? null;
     const inUni = !isFormal || applied.uni === "all" || uni === applied.uni;
     const kw = applied.kw.trim().toLocaleLowerCase();
     const kwFields = [x.colleges?.name, x.colleges?.university, x.ticket_type, x.formal_type, x.origin_name, x.destination_name, x.event_name, x.event_name_en, x.event_name_zh, x.campus].filter(Boolean).join(" ").toLocaleLowerCase();
@@ -516,7 +516,7 @@ function Card({ x, mobile, language, seller }: { x: TicketListing; mobile: boole
       </View> : null}
       {!image && x.open_to_swap ? <View style={s.swapBadgeInline}><Ionicons name="swap-horizontal" size={11} color="#78350F"/><Text style={s.swapBadgeText}>{language==="zh"?"支持换票":"OPEN TO SWAP"}</Text></View> : null}
       <Text style={[s.cardLabel, mobile && s.cardLabelMobile]} numberOfLines={2}>
-        {x.ticket_type ?? x.formal_type} · {x.campus ?? x.colleges.university}
+        {x.ticket_type ?? x.formal_type}{x.campus ? ` · ${x.campus}` : ""}
       </Text>
       {travel ? (
         <>

@@ -47,7 +47,7 @@ export default function FindTicket(){
     const itemCategory=item.listing_category??"formal";
     const price=Number(item.asking_price_gbp??item.student_listing_price_gbp??0);
     return (category==="all"||category==="swap"?category!=="swap"||item.open_to_swap===true:itemCategory===category)
-      &&(!sameCity||(item.campus??item.colleges.university)===myCity)
+      &&(!sameCity||item.campus===myCity)
       &&(collegeId==="all"||item.college_id===collegeId)
       &&(!date||item.formal_date===date)
       &&(!Number(budget)||price<=Number(budget));
@@ -96,7 +96,7 @@ export default function FindTicket(){
             <View style={s.cityPills}>
               {(["Oxford","Cambridge","Durham"] as const).map(city=>
                 <Pressable key={city} style={[s.city,city===myCity&&s.cityOn]} onPress={()=>setMyCity(city)}>
-                  <Text style={[s.cityText,city===myCity&&s.cityTextOn]}>{language==="zh"?(city==="Oxford"?"牛津":"剑桥"):city}</Text>
+                  <Text style={[s.cityText,city===myCity&&s.cityTextOn]}>{localValue(city,language)}</Text>
                 </Pressable>
               )}
             </View>

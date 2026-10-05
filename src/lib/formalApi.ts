@@ -1271,4 +1271,73 @@ export async function uploadMessageImage(uri:string,originalName:string){
   return path;
 }
 export async function uploadMessageFile(file:Blob,originalName:string){const user=await getCurrentUser();if(!user?.id)throw new Error("Please log in before attaching a file.");const mimeType=file.type||"application/octet-stream";const safeName=originalName.replace(/[^A-Za-z0-9._-]/g,"-").slice(-100)||"attachment";const path=`${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}-${safeName}`;const {error}=await supabase.storage.from("message-images").upload(path,await file.arrayBuffer(),{contentType:mimeType,upsert:false});if(error)throw error;return path;}
+export type Announcement = { id: string; title: string; body: string; audience: string; recipients: number; devices: number; created_at: string };
+
+/**
+ * Registers this device for push, asking for permission if it has not been
+ * decided yet. Returns false when permission is refused or unavailable.
+ *
+ * Called at the moment a notification first becomes useful — opening a
+ * conversation — rather than at launch, so the prompt arrives with a reason
+ * the person can see. iOS only ever shows the system dialog once, so asking
+ * at a bad moment spends the only chance there is.
+ */
+export async function ensurePushRegistered({ ask = true }: { ask?: boolean } = {}) {
+  if (Platform.OS === "web") return false;
+  try {
+    const Notifications = await import("expo-notifications");
+    const existing = await Notifications.getPermissionsAsync();
+    let granted = existing.granted;
+
+    if (!granted) {
+      if (!ask || !existing.canAskAgain) return false;
+      const asked = await Notifications.requestPermissionsAsync({
+        ios: { allowAlert: true, allowBadge: true, allowSound: true },
+      });
+      granted = asked.granted;
+    }
+    if (!granted) return false;
+
+    if (Platform.OS === "android") {
+      await Notifications.setNotificationChannelAsync("messages", {
+        name: "Messages",
+        importance: Notifications.AndroidImportance.HIGH,
+      });
+    }
+
+    const Constants = (await import("expo-constants")).default;
+    const projectId =
+      Constants.expoConfig?.extra?.eas?.projectId ?? (Constants as any).easConfig?.projectId;
+    if (!projectId) return false;
+
+    const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+    await savePushToken(token, Platform.OS);
+    return true;
+  } catch {
+    // A simulator with no push support, or a refused prompt; neither is
+    // worth interrupting the person over.
+    return false;
+  }
+}
+
+export async function sendAnnouncement(input: { title: string; body: string; audience: string }) {
+  const { data, error } = await supabase.functions.invoke("send-announcement", { body: input });
+  if (error) {
+    const detail = await readFunctionError(error);
+    throw new Error(detail ?? error.message);
+  }
+  if (data?.error) throw new Error(data.error);
+  return data as { recipients: number; devices: number; tokensFound: number };
+}
+
+export async function loadAnnouncements() {
+  const { data, error } = await supabase
+    .from("announcements")
+    .select("id,title,body,audience,recipients,devices,created_at")
+    .order("created_at", { ascending: false })
+    .limit(50);
+  if (error) throw error;
+  return (data ?? []) as Announcement[];
+}
+
 export async function savePushToken(token:string,platform:string){const user=await getCurrentUser();if(!user?.id)return;const {error}=await supabase.from("push_tokens").upsert({user_id:user.id,token,platform,updated_at:new Date().toISOString()},{onConflict:"user_id,token"});if(error)throw error;}

@@ -26,8 +26,11 @@ import {
   adminSetListingStatus,
   adminSetProfilePermissions,
   adminSetProfileRole,
+  Announcement,
   loadAdminDashboard,
+  loadAnnouncements,
   loadMyProfile,
+  sendAnnouncement,
 } from "../lib/formalApi";
 
 const C = {
@@ -37,7 +40,7 @@ const C = {
   redBg: "#FEF2F2", blueBg: "#EFF6FF",
 };
 
-const TABS = ["Overview", "Moderation", "Listings", "Buyer requests", "Users", "Feedback", "Colleges", "System"] as const;
+const TABS = ["Overview", "Moderation", "Listings", "Buyer requests", "Users", "Feedback", "Colleges", "Announce", "System"] as const;
 type Tab = (typeof TABS)[number];
 type Row = Record<string, any>;
 type Run = (key: string, action: () => Promise<void>) => Promise<void>;
@@ -138,7 +141,7 @@ export default function AdminDashboard() {
           </Pressable>
         ))}</View>
 
-        {tab !== "Overview" && tab !== "System" ? (
+        {tab !== "Overview" && tab !== "System" && tab !== "Announce" ? (
           <View style={[s.tools, mobile && s.toolsMobile]}>
             <View style={s.searchBox}>
               <Ionicons name="search-outline" size={18} color={C.muted}/>
@@ -160,6 +163,7 @@ export default function AdminDashboard() {
         {data && tab === "Users" && <Users rows={filter(data.profiles)} note={note} busy={busy} run={run} confirmRun={confirmRun} currentAdminId={currentAdminId}/>} 
         {data && tab === "Feedback" && <Feedback rows={filter(data.feedback)} note={note} busy={busy} run={run}/>} 
         {data && tab === "Colleges" && <Colleges data={data} rows={filter(data.ratings)} busy={busy} run={run} confirmRun={confirmRun} mobile={mobile}/>}
+        {tab === "Announce" && <Announce/>}
         {data && tab === "System" && <System data={data}/>} 
 
         <Text style={s.footer}>Last refreshed {formatDate(data?.generated_at)} · Pull down or tap Refresh for current production data.</Text>
@@ -318,6 +322,93 @@ function System({ data }: { data: AdminSnapshot }) {
   </>;
 }
 
+
+const AUDIENCES: Array<[string, string]> = [
+  ["all", "Everyone"],
+  ["verified", "Verified only"],
+  ["Oxford", "Oxford"],
+  ["Cambridge", "Cambridge"],
+  ["Durham", "Durham"],
+];
+
+function Announce() {
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
+  const [audience, setAudience] = useState("all");
+  const [sending, setSending] = useState(false);
+  const [history, setHistory] = useState<Announcement[]>([]);
+  const [result, setResult] = useState("");
+
+  async function refreshHistory() {
+    try { setHistory(await loadAnnouncements()); } catch { /* history is not worth an error banner */ }
+  }
+  useEffect(() => { void refreshHistory(); }, []);
+
+  async function send() {
+    if (!title.trim() || !body.trim()) {
+      Alert.alert("Incomplete", "A title and a message are both required.");
+      return;
+    }
+    const label = AUDIENCES.find(([v]) => v === audience)?.[1] ?? audience;
+    const confirm = `Send "${title.trim()}" to ${label}? Everyone in that group with notifications enabled receives it immediately, and a push cannot be recalled.`;
+    const go = async () => {
+      try {
+        setSending(true);
+        const out = await sendAnnouncement({ title: title.trim(), body: body.trim(), audience });
+        setResult(`Sent to ${out.devices} device${out.devices === 1 ? "" : "s"} across ${out.recipients} account${out.recipients === 1 ? "" : "s"}.`);
+        setTitle(""); setBody("");
+        await refreshHistory();
+      } catch (e: any) {
+        Alert.alert("Could not send", e?.message ?? "Please try again.");
+      } finally { setSending(false); }
+    };
+    if (Platform.OS === "web") { if (globalThis.confirm(confirm)) void go(); return; }
+    Alert.alert("Send announcement?", confirm, [
+      { text: "Cancel", style: "cancel" },
+      { text: "Send", style: "destructive", onPress: () => void go() },
+    ]);
+  }
+
+  return <>
+    <Panel title="Send an announcement" subtitle="Delivered as a push notification to everyone in the audience who has notifications enabled. There is no way to recall one.">
+      <Text style={s.announceLabel}>Audience</Text>
+      <View style={s.announceChips}>
+        {AUDIENCES.map(([value, label]) => (
+          <Pressable key={value} style={[s.announceChip, audience === value && s.announceChipOn]} onPress={() => setAudience(value)}>
+            <Text style={[s.announceChipText, audience === value && s.announceChipTextOn]}>{label}</Text>
+          </Pressable>
+        ))}
+      </View>
+
+      <Text style={s.announceLabel}>Title · {80 - title.length} left</Text>
+      <TextInput value={title} onChangeText={(v) => setTitle(v.slice(0, 80))} placeholder="Freshers formals are live" placeholderTextColor="#94A3B8" style={s.noteInput}/>
+
+      <Text style={s.announceLabel}>Message · {400 - body.length} left</Text>
+      <TextInput value={body} onChangeText={(v) => setBody(v.slice(0, 400))} placeholder="Say what changed and what to do about it." placeholderTextColor="#94A3B8" multiline style={[s.noteInput, s.announceBody]}/>
+
+      {result ? <View style={s.successBox}><Ionicons name="checkmark-circle-outline" size={20} color={C.green}/><Text style={s.successText}>{result}</Text></View> : null}
+
+      <Pressable style={[s.announceSend, sending && s.announceSendOff]} disabled={sending} onPress={send}>
+        <Ionicons name="megaphone-outline" size={18} color="#fff"/>
+        <Text style={s.announceSendText}>{sending ? "Sending…" : "Send announcement"}</Text>
+      </Pressable>
+    </Panel>
+
+    <Panel title="Sent announcements" subtitle="Devices is how many push tokens were reached; accounts is how many people matched the audience.">
+      {!history.length ? <Empty text="Nothing sent yet."/> : history.map((row) => (
+        <View style={s.systemRow} key={row.id}>
+          <View style={s.systemIcon}><Ionicons name="megaphone-outline" size={19} color={C.navy}/></View>
+          <View style={s.systemCopy}>
+            <Text style={s.rankTitle}>{row.title}</Text>
+            <Text style={s.cardMeta}>{row.body}</Text>
+            <Text style={s.cardMeta}>{row.audience} · {row.devices} device{row.devices === 1 ? "" : "s"} of {row.recipients} account{row.recipients === 1 ? "" : "s"} · {formatDate(row.created_at)}</Text>
+          </View>
+        </View>
+      ))}
+    </Panel>
+  </>;
+}
+
 function Panel({ title, subtitle, children }: { title: string; subtitle?: string; children: any }) { return <View style={s.panel}><Text style={s.panelTitle}>{title}</Text>{subtitle?<Text style={s.panelSub}>{subtitle}</Text>:null}<View style={s.panelBody}>{children}</View></View>; }
 function AdminCard({ children }: { children: any }) { return <View style={s.adminCard}>{children}</View>; }
 function Actions({ children }: { children: any }) { return <View style={s.actions}>{children}</View>; }
@@ -352,4 +443,14 @@ const s=StyleSheet.create({
   systemRow:{flexDirection:"row",alignItems:"center",gap:10,paddingVertical:10,borderBottomWidth:1,borderBottomColor:"#EEF2F6"},systemIcon:{width:36,height:36,borderRadius:12,backgroundColor:C.blueBg,alignItems:"center",justifyContent:"center"},systemCopy:{flex:1,minWidth:0},privacyBox:{flexDirection:"row",alignItems:"flex-start",gap:12,backgroundColor:C.greenBg,borderWidth:1,borderColor:"#A7F3D0",borderRadius:20,padding:16},privacyCopy:{flex:1},privacyTitle:{fontSize:16,fontWeight:"900",color:C.green},privacyText:{fontSize:13,lineHeight:20,fontWeight:"700",color:C.green,marginTop:4},
   empty:{alignItems:"center",justifyContent:"center",paddingVertical:28,gap:8},emptyText:{textAlign:"center",color:C.muted,fontWeight:"700"},footer:{textAlign:"center",color:C.muted,fontSize:11,marginTop:8},
   center:{flex:1,flexGrow:1,backgroundColor:C.background,alignItems:"center",justifyContent:"center",padding:24},centerTitle:{fontSize:27,fontWeight:"900",color:C.navy,marginTop:12,textAlign:"center"},centerText:{fontSize:14,lineHeight:21,color:C.muted,marginTop:7,textAlign:"center",maxWidth:480},centerButton:{marginTop:18,minHeight:48,paddingHorizontal:24,borderRadius:15,backgroundColor:C.navy,alignItems:"center",justifyContent:"center"},centerButtonText:{color:"#FFF",fontWeight:"900"},
+  announceLabel:{color:C.muted,fontSize:11,fontWeight:"900",letterSpacing:.5,textTransform:"uppercase",marginTop:14,marginBottom:7},
+  announceChips:{flexDirection:"row",flexWrap:"wrap",gap:7},
+  announceChip:{paddingHorizontal:13,paddingVertical:8,borderRadius:20,borderWidth:1,borderColor:C.border,backgroundColor:C.card},
+  announceChipOn:{backgroundColor:C.navy,borderColor:C.navy},
+  announceChipText:{color:C.navy,fontSize:12,fontWeight:"800"},
+  announceChipTextOn:{color:"#fff"},
+  announceBody:{minHeight:110,paddingTop:12,textAlignVertical:"top"},
+  announceSend:{marginTop:18,minHeight:50,borderRadius:16,backgroundColor:C.navy,flexDirection:"row",alignItems:"center",justifyContent:"center",gap:9},
+  announceSendOff:{opacity:.55},
+  announceSendText:{color:"#fff",fontWeight:"900",fontSize:15},
 });

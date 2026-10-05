@@ -347,7 +347,7 @@ export default function ListTicket() {
         listing_category: form.category,
         content_language: language,
         ticket_type: formal ? form.formalType : transport ? form.ticketType : rideShare ? "Airport ride-share" : "Other event",
-        campus: form.campus,
+        campus: formal ? form.campus : null,
         college_id: fallbackCollege.id,
         formal_type: formal ? form.formalType : "Special Formal",
         dress_code: formal ? form.dressCode : "Casual",

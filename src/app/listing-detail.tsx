@@ -69,7 +69,9 @@ export default function ListingDetail() {
   const images = listing ? ([...(listing.image_urls ?? []), ...(listing.hall_photo_url ? [listing.hall_photo_url] : [])].filter((value, index, all) => Boolean(value) && all.indexOf(value) === index)) : [];
   const title = demo?.college ?? (transport ? `${listing?.origin_name ?? ""} → ${listing?.destination_name ?? ""}` : event ? localContent(listing?.event_name, listing?.event_name_en, listing?.event_name_zh, listing?.content_language, language, showOriginal) || text("Event listing", "活动门票") : listing?.colleges?.name ?? text("Ticket listing", "票务帖子"));
   const type = localValue(demo?.type ?? listing?.ticket_type ?? listing?.formal_type ?? "Ticket", language);
-  const campus = demo?.university ?? listing?.campus ?? listing?.colleges?.university;
+  // Travel and event listings belong to no university: anyone with any
+  // email may post them, anywhere in the UK. Only a Formal carries a campus.
+  const campus = demo?.university ?? listing?.campus ?? null;
   const date = demo?.date ?? listing?.formal_date;
   const time = demo?.time ?? String(listing?.formal_time ?? "").slice(0, 5);
   const price = demo?.price ?? Number(listing?.asking_price_gbp ?? listing?.student_listing_price_gbp ?? 0);
@@ -164,7 +166,7 @@ export default function ListingDetail() {
     {demo ? <Image source={demo.image} style={[s.hero, compact && { ...s.heroCompact, width: heroWidth }]} contentFit="cover" cachePolicy="memory-disk" /> : images.length ? <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} style={s.gallery}>{images.map((uri) => <Image key={uri} source={{ uri }} style={[s.hero, compact && { ...s.heroCompact, width: heroWidth }]} contentFit="cover" cachePolicy="memory-disk" transition={150} />)}</ScrollView> : <View style={[s.hero, s.placeholder, compact && { ...s.heroCompact, width: heroWidth }]}><Ionicons name={transport ? "train-outline" : event ? "calendar-outline" : "restaurant-outline"} size={50} color="#8BA6C3" /></View>}
 
     <View style={s.summaryCard}>
-      <View style={s.badges}><Badge text={localValue(campus ?? "University", language)} /><Badge text={type} />{listing?.open_to_swap?<View style={s.swapBadge}><Ionicons name="swap-horizontal" size={14} color="#78350F"/><Text style={s.swapBadgeText}>{text("Supports ticket swaps","支持票换票")}</Text></View>:null}</View>
+      <View style={s.badges}>{campus ? <Badge text={localValue(campus, language)} /> : null}<Badge text={type} />{listing?.open_to_swap?<View style={s.swapBadge}><Ionicons name="swap-horizontal" size={14} color="#78350F"/><Text style={s.swapBadgeText}>{text("Supports ticket swaps","支持票换票")}</Text></View>:null}</View>
       <Text style={[s.title, compact && s.titleCompact]}>{title}</Text>
       <Text style={s.date}>{date} · {time}</Text>
       <View style={s.priceRow}><Text style={s.price}>£{price.toFixed(2)}</Text><Text style={s.quantity}>{text(`${quantity} ${quantity === 1 ? "place" : "places"} available`, `剩余 ${quantity} 个名额`)}</Text></View>

@@ -7,7 +7,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from "react-native";
 import BottomNav from "../../components/BottomNav";
-import { ChatMessage, Conversation, blockUser, conversationCounterpartId, getCurrentUser, loadConversationMessages, loadMyConversations, markConversationRead, savePushToken, sendConversationMessage, uploadMessageFile, uploadMessageImage } from "../lib/formalApi";
+import { ChatMessage, Conversation, blockUser, conversationCounterpartId, ensurePushRegistered, getCurrentUser, loadConversationMessages, loadMyConversations, markConversationRead, savePushToken, sendConversationMessage, uploadMessageFile, uploadMessageImage } from "../lib/formalApi";
 import { useAppLanguage } from "../lib/language";
 
 const C={bg:"#F5F1E8",navy:"#071B3A",blue:"#123C69",muted:"#64748B",border:"#E2E8F0"};
@@ -27,6 +27,7 @@ export default function Messages(){
     setLoadError("");
     const user=await getCurrentUser();if(!user){router.replace("/login");return;}
     const userEmail=user.email??"";setEmail(userEmail);setMyUserId(user.id??"");
+    ensurePushRegistered({ask:false}).catch(()=>{});
     const rows=await loadMyConversations();setConversations(rows);
     const summaries=await Promise.all(rows.map(async conversation=>{const all=await loadConversationMessages(conversation.id);return [conversation.id,{last:all[all.length-1],unread:all.filter(message=>!message.read_at&&message.sender_email.toLowerCase()!==userEmail.toLowerCase()).length}] as const;}));
     setPreviews(Object.fromEntries(summaries));setLoading(false);
@@ -60,7 +61,7 @@ export default function Messages(){
     }finally{setBlocking(false);}
   }
 
-  function openThread(id:string){setSelected(id);setAttachmentMenu(false);router.setParams({conversationId:id,view:undefined});}
+  function openThread(id:string){setSelected(id);setAttachmentMenu(false);router.setParams({conversationId:id,view:undefined});ensurePushRegistered().catch(()=>{});}
   function showInbox(){setSelected("");setAttachmentMenu(false);router.replace("/messages?view=inbox");}
   async function addPhoto(source:"library"|"camera"){
     if(!selected||uploading)return;
