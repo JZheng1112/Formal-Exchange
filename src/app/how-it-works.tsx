@@ -22,6 +22,17 @@ export default function HowItWorks(){const {language}=useAppLanguage();if(langua
     <P>Buyers may switch ticket categories, browse all categories, or see only their own city. Second-hand home items are handled by liuxuejishi.com, a dedicated marketplace for international-student moves and household reuse.</P>
   </Section>
 
+  <Section title="Airport ride-shares">
+    <P>Airport ride-share is a category of its own in the marketplace bar and on the listing form. It is open to every UK university and any email address, for the start of term, Christmas, Easter, summer or any other trip.</P>
+    <P>A ride-share post has a <B>pickup</B> and a <B>destination</B>, so it works in either direction: from the airport to campus, or from campus to the airport. Choose the date from the calendar and the time from the list, then add the number of seats to share and, optionally, the total cost and each person's share. Ride-shares are not offered as ticket swaps.</P>
+    <P>Meet in a public place, agree the fare split before the journey and keep the conversation in the app until you have confirmed who you are travelling with.</P>
+  </Section>
+
+  <Section title="Editing your listings">
+    <P>Open <B>Seller → My listings</B> to see every listing you have posted. An active listing can be edited at any time: change the date, time, route, places, prices, notes, photos or contact method and save. The listing stays live while you edit, and buyers see the change immediately.</P>
+    <P>The type of a listing cannot change once it is published. To switch, for example from a coach ticket to a ride-share, withdraw the listing and publish a new one. Editing never restores places that were already recorded as sold.</P>
+  </Section>
+
   <Section title="Who may use the platform">
     <P>Anyone may browse active listings without creating an account. Public listing information can include the college, formal date and time, the number and type of places available, the seller’s declared prices, dietary information, transfer restrictions and seller rating.</P>
     <P>Registration is open to any email address. Users who register or verify with a UK academic <B>.ac.uk</B> email receive a verified badge visible to other users. Formal tickets may be published from verified Oxford, Cambridge and Durham accounts — this verification is our core anti-fraud measure. Users who register with a non-academic email can verify later in My Profile by linking a .ac.uk email.</P>
@@ -74,7 +85,7 @@ export default function HowItWorks(){const {language}=useAppLanguage();if(langua
   </Section>
 
   <Section title="Current safety protections and their limits">
-    <P>Every account must verify an institutional <B>.ac.uk</B> email. Anonymous visitors may browse seller listings, but buyer-request contact details are available only to authenticated members. Formal listing privileges, which require a verified Oxford, Cambridge or Durham account, are separated from the wider permission to list travel or event tickets.</P>
+    <P>Any email address may register. Publishing a Formal requires a verified Oxford, Cambridge or Durham email. Anonymous visitors may browse seller listings, but buyer-request contact details are available only to authenticated members. Formal listing privileges, which require a verified Oxford, Cambridge or Durham account, are separated from the wider permission to list travel or event tickets.</P>
     <P>Sellers must declare face value, asking price, transfer restrictions and whether a Formal place may be transferred outside their college or outside their university. Knowingly listing a prohibited transfer, misrepresenting eligibility, duplicating a sale or failing to deliver may be reported. Confirmed serious or repeated breaches may result in listing removal, rating penalties or account suspension.</P>
     <P>Expired listings are removed from active discovery, and sellers can withdraw available listings. These controls reduce stale supply but do not prove that every ticket is genuine. Buyers should request suitable evidence, verify college, operator or venue rules, and preserve messages and payment records.</P>
     <P>Because payments are currently arranged privately, Formal Exchange does not hold the money, guarantee a refund, guarantee admission or reverse a bank transfer. Never pay under pressure. Contact <B>support@formal-exchange.co.uk</B> if a transaction appears unsafe.</P>
@@ -82,7 +93,7 @@ export default function HowItWorks(){const {language}=useAppLanguage();if(langua
 
   <Section title="Completing a transaction and withdrawing a listing">
     <P>For a private non-splittable transaction, the seller selects Confirm transaction completed and confirms that the whole listing should close. For a private split sale, the seller records how many student/member and guest places were sold; the system subtracts those quantities and leaves the remaining inventory active.</P>
-    <P>A seller may withdraw any available listing. After a direct transaction, a seller confirms completion; split listings subtract the sold places and non-splittable listings close in full.</P>
+    <P>A seller may edit or withdraw any available listing from My listings. After a direct transaction, a seller confirms completion; split listings subtract the sold places and non-splittable listings close in full.</P>
     <P>Listings also expire automatically after the formal date and time. Expiry removes them from public search but does not erase the underlying record, which may still be needed for transaction history, reports or disputes.</P>
   </Section>
 
@@ -102,6 +113,10 @@ export default function HowItWorks(){const {language}=useAppLanguage();if(langua
     <P>Formal Exchange does not operate college dining halls and cannot override college booking, guest, identity, dress or transfer rules. A platform listing does not guarantee admission where the buyer or seller fails to comply with those rules.</P>
   </Section>
 
+  <Section title="App updates">
+    <P>When a new version is ready, the app shows a message. Choose <B>Update now</B> and it restarts into the new version within a few seconds; choose <B>Later</B> and the update installs itself the next time you fully close and reopen the app. Anything you were typing is not saved, so finish it first.</P>
+  </Section>
+
   <View style={s.closing}><Text style={s.closingTitle}>The central principle</Text><Text style={s.closingText}>Price, capacity, eligibility and transfer restrictions must be clear before agreement. Direct transactions remain the responsibility of the parties while payment safeguards are still being developed. When something goes wrong, preserve messages and evidence, report the listing and contact support promptly.</Text></View>
   <View style={s.links}><Pressable onPress={()=>router.push("/find-ticket")}><Text style={s.link}>Browse all tickets</Text></Pressable><Pressable onPress={()=>router.push("/list-ticket")}><Text style={s.link}>List a ticket</Text></Pressable><Pressable onPress={()=>router.push("/contact-support")}><Text style={s.link}>Contact support</Text></Pressable></View>
 </ScrollView>}
@@ -113,6 +128,9 @@ function ChineseGuide(){return <ScrollView style={s.page} contentContainerStyle=
   <Text style={s.updated}>平台规则与用户指南 · 发布或购买前请阅读</Text>
   <Pressable style={s.swapSpotlight} onPress={()=>router.push('/marketplace?filter=swap')}><View style={s.swapSpotlightIcon}><Ionicons name="swap-horizontal" size={25} color="#fff"/></View><View style={{flex:1}}><Text style={s.swapSpotlightTitle}>换票专区是核心交换方式</Text><Text style={s.swapSpotlightText}>可以用一张符合转让规则的学院票直接交换另一张票，不必先进行现金买卖；是否补差价由双方私下决定。</Text></View><Ionicons name="chevron-forward" size={20} color="#78350F"/></Pressable>
   <Section title="平台目的与支持的票务"><P>我们的首要目标，是在原持票人无法参加时，避免有效的牛津、剑桥和杜伦 Formal 晚宴名额被浪费。Formal 交换始终是主营功能，也是买家页的默认内容。</P><P>Formal 经常一票难求，但抢到票的人可能临时无法参加。部分学院不提供退款或官方转售渠道，跨学院及牛津—剑桥之间的机会又分散在多个非正式渠道。平台只撮合学院规则允许的供需，不会凌驾于学院规则之上。</P><P>任何学校、任何邮箱的注册用户都可以发布大巴票、火车票、活动门票和机场拼车——这些功能面向全英开放，不限于牛津、剑桥和杜伦。只有 Formal 帖子会标注学校，因为只有 Formal 属于某个学院。行程类帖子会显示出发地、目的地、出发与到达时间、自动计算的时长及相关限制。</P></Section>
+  <Section title="机场拼车"><P>机场拼车是市场顶部和发布页里的独立类型，全英任何学校、任何邮箱都可以发布，开学、圣诞、复活节、暑假或任何出行都能用。</P><P>拼车帖子填写<B>上车地点</B>和<B>目的地</B>，接机、送机都适用。日期在日历里点选，时间在列表里点选，再填可拼车名额，以及可选的行程总费用和每人分摊金额。拼车不参与票换票。</P><P>请在公共场所会合，出发前先谈好费用分摊；确认同行人身份前，尽量通过应用内私信沟通。</P></Section>
+  <Section title="编辑自己的帖子"><P>在<B>卖家中心 → 我的帖子</B>可以看到你发布的所有帖子。展示中的帖子随时可以编辑：日期、时间、路线、名额、价格、备注、图片和联系方式都能修改，保存后买家立即看到新内容，编辑期间帖子保持上线。</P><P>帖子发布后类型不能更改。比如想把大巴票改成拼车，请先撤下原帖再重新发布。编辑不会恢复已经记录为售出的名额。</P></Section>
+  <Section title="应用更新"><P>有新版本时，应用会弹窗提示。点「立即更新」，几秒后自动重启到新版；选「稍后」，下次彻底关闭再打开时会自动更新。正在填写的内容不会保存，建议先填完再更新。</P></Section>
   <Section title="账号与认证"><P>使用任意邮箱即可注册。使用英国 .ac.uk 高校邮箱注册或认证后将获得认证标识，其他用户可以看到。只有认证的牛津、剑桥或杜伦账号才能发布 Formal 票——这是我们防止诈骗的核心措施。使用普通邮箱注册的用户可以稍后在「我的资料」中关联 .ac.uk 邮箱进行认证。</P><P>我们强烈建议牛津和剑桥的学生进行认证。认证标识能增加买家信任，也是发布 Formal 票的必要条件。我们的认证范围今后将扩展到企业和全球教育邮箱，目前服务英国高校。</P><P>买家必须先登录才能联系卖家、查看受保护联系方式、保存学院访问记录或举报。</P></Section>
   <Section title="语言与自动翻译"><P>应用设置的语言就是发布时的填写语言，不需要选择“帖子语言”，也不需要再手工填写英文副本。你只需填写一次可选备注，系统会自动为使用另一种语言的用户生成译文，并提供“查看原文”。</P><P>机器翻译可能存在误差，因此票种、资格、学院、日期、时间、路线、人数和价格尽量使用结构化选项。涉及入场资格或转让规则时，请同时向卖家和学院确认。</P></Section>
   <Section title="Formal 可见范围与学院规则"><P>卖家有权根据学院规则选择是否向举办学院以外、本校以外的用户出售。本院学生也经常抢不到票，因此扩大可见范围不是自动的；不同账号看到的帖子可能不同。</P><P>卖家必须确认票务可按所选范围转让。禁止转让的票不得发布或出售；向不符合资格的买家出售，举报核实后可能导致帖子立即下架、Formal 发布权限被取消或账号暂停。</P></Section>
@@ -120,7 +138,7 @@ function ChineseGuide(){return <ScrollView style={s.page} contentContainerStyle=
   <Section title="图片"><P>所有图片均为可选。Formal 图片用于展示用餐礼堂、以前的菜品或氛围；活动或行程图片用于辅助识别。绝不要上传票面、二维码、条形码、预订编号、付款凭证或个人证件。</P></Section>
   <Section title="票换票专区"><P>卖家在发布普通帖子时，只需勾选一个可选项即可开启票换票。原有售价、普通购买和联系流程全部保留；帖子封面会显示“支持票换票”，并能被颜色醒目的“票换票”筛选找到。</P><P>该标记只是邀请双方进一步沟通，并不代表自动达成交换。例如，用户可以用 A 学院的合资格名额交换 B 学院的合资格名额。双方仍须独立确认资格和转让规则。直接交换或是否补差价完全自愿并由双方私下决定；Formal Exchange 不定价、不代收，也不保障这笔补差价付款。</P></Section>
   <Section title="付款与安全保护"><P>在线付款功能正在完善安全、争议处理和放票机制，目前不可用。Formal Exchange 不收取或托管资金、不保证入场、不提供自动退款，也无法撤销私人转账。</P><P>平台采用机构邮箱验证、Formal 发布权限隔离、受众可见范围控制、到期自动下架、卖家主动撤帖、举报、管理审核、账号暂停和应用内私信等措施。它们可以降低风险，但不能证明每张票真实有效。</P><P>付款前请核验身份、票务证据、学院或运营商规则、准确价格和转让方式。不要分享密码或验证码，不要在压力下付款，保留聊天与付款记录。遇到问题请联系 support@formal-exchange.co.uk。</P></Section>
-  <Section title="私信、完成交易与撤帖"><P>点击“联系购买”或“联系出售”会建立应用内对话。消息页先显示联系人列表，再进入具体聊天；启用系统通知后可收到新消息提醒。</P><P>卖家可撤下有效帖子。交易完成后，拆分帖子扣减已售名额；不可拆分帖子整体关闭。所有帖子会在活动或行程时间后自动从公开列表消失，但记录可保留用于举报或争议处理。</P></Section>
+  <Section title="私信、完成交易与撤帖"><P>点击“联系购买”或“联系出售”会建立应用内对话。消息页先显示联系人列表，再进入具体聊天；启用系统通知后可收到新消息提醒。</P><P>卖家可在「我的帖子」中编辑或撤下有效帖子。交易完成后，拆分帖子扣减已售名额；不可拆分帖子整体关闭。所有帖子会在活动或行程时间后自动从公开列表消失，但记录可保留用于举报或争议处理。</P></Section>
   <Section title="学院访问与多维评分"><P>个人资料中的所属学院会自动计入已访问。参加其他学院的 Formal 后，可在“学院—我的学院访问记录”中标记已访问，并从餐食、礼堂与环境、氛围、接待体验及性价比五个维度评分，还可添加一条可选评论。</P></Section>
   <View style={s.closing}><Text style={s.closingTitle}>核心原则</Text><Text style={s.closingText}>在达成交易前，价格、名额、资格和转让限制必须清晰。私人交易由双方负责；如有异常，请保留消息和证据、举报帖子并尽快联系支持团队。</Text></View>
   <View style={s.links}><Pressable onPress={()=>router.push("/find-ticket")}><Text style={s.link}>浏览所有票务</Text></Pressable><Pressable onPress={()=>router.push("/list-ticket")}><Text style={s.link}>发布票务</Text></Pressable><Pressable onPress={()=>router.push("/contact-support")}><Text style={s.link}>联系支持团队</Text></Pressable></View>

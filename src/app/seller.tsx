@@ -37,6 +37,11 @@ export default function Seller() {
         <Text style={s.sub}>
           {text("Find verified buyers who are already looking for a Formal, journey or event ticket.","查看正在寻找 Formal、车票或活动门票的买家需求。")}
         </Text>
+        <Pressable style={[s.rankings, s.myListings]} onPress={() => router.push("/my-listings")}>
+          <Ionicons name="albums-outline" size={19} color="#fff" />
+          <Text style={[s.rankingsText, { color: "#fff" }]}>{text("My listings · edit, complete or withdraw", "我的帖子 · 编辑、完成或撤下")}</Text>
+          <Ionicons name="chevron-forward" size={18} color="#fff" />
+        </Pressable>
         <Pressable
           style={s.rankings}
           onPress={() => router.push("/college-rankings")}
@@ -128,6 +133,7 @@ const s = StyleSheet.create({
     gap: 9,
   },
   rankingsText: { flex: 1, color: "#071B3A", fontWeight: "900" },
+  myListings: { backgroundColor: "#071B3A", borderColor: "#071B3A" },
   list: {
     backgroundColor: "#071B3A",
     borderRadius: 16,

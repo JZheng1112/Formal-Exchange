@@ -27,6 +27,9 @@ import {
   loadColleges,
   loadMyProfile,
   translateContent,
+  loadMyListing,
+  updateMyListing,
+  TicketListing,
   uploadListingImage,
 } from "../lib/formalApi";
 import { useAppLanguage } from "../lib/language";
@@ -186,14 +189,21 @@ export default function ListTicket() {
   const [status, setStatus] = useState("");
   const [draftFound, setDraftFound] = useState(false);
   const [published, setPublished] = useState(false);
-  const params = useLocalSearchParams<{ type?: string }>();
+  const params = useLocalSearchParams<{ type?: string; edit?: string }>();
+  const editId = typeof params.edit === "string" && params.edit ? params.edit : "";
+  const [original, setOriginal] = useState<TicketListing | null>(null);
   const rideShare = form.category === "event" && form.eventKind === "airport_ride_share";
 
   useEffect(() => {
-    Promise.all([loadColleges(), loadMyProfile(), AsyncStorage.getItem(DRAFT_KEY)])
-      .then(([allColleges, profile, saved]) => {
+    Promise.all([loadColleges(), loadMyProfile(), AsyncStorage.getItem(DRAFT_KEY), editId ? loadMyListing(editId) : Promise.resolve(null)])
+      .then(([allColleges, profile, saved, existing]) => {
         setColleges(allColleges);
         setProfileEmail(profile?.email?.toLowerCase() ?? "");
+        if (existing) {
+          setOriginal(existing);
+          setForm(listingToDraft(existing));
+          return;
+        }
         const preferredCampus = profile?.university ?? "Oxford";
         const preferredCollege = profile?.college_id ?? allColleges.find((c) => c.university === preferredCampus)?.id ?? "";
         const linkedRide = params.type === "rideshare" ? { category: "event" as ListingCategory, eventKind: "airport_ride_share" as EventKind } : {};
@@ -323,7 +333,9 @@ export default function ListTicket() {
       const imageUrls: string[] = [];
       for (let i = 0; i < form.imageUris.length; i += 1) {
         setStatus(text(`Uploading optional photo ${i + 1} of ${form.imageUris.length}…`, `正在上传可选图片 ${i + 1}/${form.imageUris.length}…`));
-        imageUrls.push(await uploadListingImage(form.imageUris[i]));
+        const uri = form.imageUris[i];
+        // Photos already on the listing are URLs; only new ones need uploading.
+        imageUrls.push(/^https?:\/\//.test(uri) ? uri : await uploadListingImage(uri));
       }
       setStatus(text("Preparing automatic translation…", "正在准备自动翻译…"));
       const fallbackCollege = selectedCollege ?? campusColleges[0] ?? colleges[0];
@@ -332,6 +344,9 @@ export default function ListTicket() {
       const transport = form.category === "coach_train";
       const memberSeats = formal ? Math.max(0, Math.floor(Number(form.studentSeats) || 0)) : Math.max(1, Math.floor(Number(form.quantity) || 1));
       const guests = formal ? guestCount : 0;
+      // Editing must not hand back places already sold.
+      const soldMembers = original ? Math.max(0, (original.student_seats ?? 0) - (original.remaining_student_seats ?? original.student_seats ?? 0)) : 0;
+      const soldGuests = original ? Math.max(0, (original.guest_seats ?? 0) - (original.remaining_guest_seats ?? original.guest_seats ?? 0)) : 0;
       const asking = formal ? Number(form.studentPrice) : Number(form.askingPrice || 0);
       const face = formal ? Number(form.studentFace) : Number(form.faceValue || form.askingPrice || 0);
       const eventNameOriginal = form.category === "event" ? (rideShare ? `${form.origin} → ${form.destination}` : form.eventName.trim()) : "";
@@ -349,8 +364,8 @@ export default function ListTicket() {
         translateOrKeep(dietaryOriginal),
         transport ? "" : translateOrKeep(noteOriginal),
       ]);
-      setStatus(text("Publishing listing…", "正在发布帖子…"));
-      await createTicketListing({
+      setStatus(editId ? text("Saving changes…", "正在保存修改…") : text("Publishing listing…", "正在发布帖子…"));
+      const payload: Record<string, unknown> = {
         listing_category: form.category,
         content_language: language,
         ticket_type: formal ? form.formalType : transport ? form.ticketType : rideShare ? "Airport ride-share" : "Other event",
@@ -363,8 +378,8 @@ export default function ListTicket() {
         includes_guest: guests > 0,
         student_seats: memberSeats,
         guest_seats: guests,
-        remaining_student_seats: memberSeats,
-        remaining_guest_seats: guests,
+        remaining_student_seats: Math.max(0, memberSeats - soldMembers),
+        remaining_guest_seats: Math.max(0, guests - soldGuests),
         ticket_quantity: formal ? memberSeats + guests : Math.max(1, Math.floor(Number(form.quantity) || 1)),
         allow_separate_sale: formal ? form.canSplit : Number(form.quantity) > 1,
         can_split: formal ? form.canSplit : Number(form.quantity) > 1,
@@ -427,10 +442,18 @@ export default function ListTicket() {
         private_contact_type: null,
         private_contact_value: null,
         status: "active",
-      });
-      await AsyncStorage.removeItem(DRAFT_KEY);
-      setDraftFound(false);
-      setStatus(text("Published successfully.", "发布成功。"));
+      };
+      if (editId) {
+        // Status stays as it is; editing is not a way to relist.
+        delete payload.status;
+        await updateMyListing(editId, payload);
+        setStatus(text("Changes saved successfully.", "修改已保存。"));
+      } else {
+        await createTicketListing(payload);
+        await AsyncStorage.removeItem(DRAFT_KEY);
+        setDraftFound(false);
+        setStatus(text("Published successfully.", "发布成功。"));
+      }
       setPublished(true);
     } catch (error: any) {
       const message = friendlyError(error);
@@ -450,18 +473,18 @@ export default function ListTicket() {
         </Pressable>
         <View style={s.headerCopy}>
           <Text style={s.eyebrow}>{text("SELLER POST", "卖家发布")}</Text>
-          <Text style={[s.title, compact && s.titleCompact]}>{text("List a ticket", "发布票务")}</Text>
-          <Text style={s.subtitle}>{text("Choose the ticket type first. Only relevant questions will appear.", "请先选择票务类型，页面只会显示相关问题。")}</Text>
+          <Text style={[s.title, compact && s.titleCompact]}>{editId ? text("Edit listing", "编辑帖子") : text("List a ticket", "发布票务")}</Text>
+          <Text style={s.subtitle}>{editId ? text("Change anything below and save. The listing stays live while you edit.", "修改下面的内容后保存，编辑期间帖子保持上线。") : text("Choose the ticket type first. Only relevant questions will appear.", "请先选择票务类型，页面只会显示相关问题。")}</Text>
         </View>
       </View>
 
       {status ? <View accessibilityLiveRegion="polite" style={status.includes("success") || status.includes("saved") || status.includes("restored") ? s.ok : status.startsWith("Please") || status.startsWith("Could not") ? s.error : s.progress}><Text style={s.statusText}>{status}</Text></View> : null}
-      {draftFound ? <Pressable style={s.restore} onPress={restoreDraft}><Ionicons name="document-text-outline" size={18} color={C.blue} /><Text style={s.restoreText}>{text("Restore saved draft", "恢复已保存草稿")}</Text></Pressable> : null}
+      {draftFound && !editId ? <Pressable style={s.restore} onPress={restoreDraft}><Ionicons name="document-text-outline" size={18} color={C.blue} /><Text style={s.restoreText}>{text("Restore saved draft", "恢复已保存草稿")}</Text></Pressable> : null}
 
       <Notice text={text("Write once in your selected app language. Optional text is translated automatically for Chinese readers, with the original still available.", "请直接使用当前界面的中文填写一次。选填文字会自动翻译给英文用户，并保留原文供查看。")}/>
 
-      <Card title={text("1 · What are you listing?", "1 · 你要发布什么？")} hint={text("Changing the type clears fields that no longer apply.", "更改类型会清空不再适用的字段。") }>
-        <Pills
+      <Card title={text("1 · What are you listing?", "1 · 你要发布什么？")} hint={editId ? text("The type of an existing listing cannot change. To post a different type, withdraw this one and publish a new listing.", "已发布帖子的类型不能更改。如需改成其他类型，请撤下此帖后重新发布。") : text("Changing the type clears fields that no longer apply.", "更改类型会清空不再适用的字段。") }>
+        {editId ? null : <Pills
           value={rideShare ? "ride_share" : form.category}
           options={[
             ["formal", "Formal"],
@@ -470,7 +493,8 @@ export default function ListTicket() {
             ["event", text("Other event ticket", "其他活动门票")],
           ]}
           onChange={(value) => value === "ride_share" ? changeCategory("event", "airport_ride_share") : changeCategory(value as ListingCategory)}
-        />
+        />}
+        {editId ? <Pills value="current" options={[["current", rideShare ? text("✈ Airport ride-share", "✈ 机场拼车") : form.category === "formal" ? "Formal" : form.category === "coach_train" ? text("Coach / train", "大巴 / 火车") : text("Other event ticket", "其他活动门票")]]} onChange={() => {}} /> : null}
         {form.category !== "formal" ? <Notice text={text("Ride-shares and travel tickets are open to every UK university and any email — term start, Christmas, Easter or summer.", "拼车和车票全英通用，任何学校、任何邮箱都能发，开学、圣诞、复活节、暑假都用得上。")} /> : null}
         <Pressable style={s.externalMarket} onPress={() => openHomeItemsMarket(language)}><Ionicons name="home-outline" size={18} color={C.blue} /><Text style={s.externalMarketText}>{language === "zh" ? "二手家居用品（liuxuejishi.com）" : "Second-hand home items (liuxuejishi.com)"}</Text><Ionicons name="open-outline" size={17} color={C.blue} /></Pressable>
       </Card>
@@ -617,22 +641,22 @@ export default function ListTicket() {
       </Card>
 
       <View style={[s.actions, compact && s.actionsCompact]}>
-        <Pressable style={({ pressed }) => [s.secondaryButton, pressed && s.pressed]} onPress={saveDraft} disabled={busy}>
+        {editId ? null : <Pressable style={({ pressed }) => [s.secondaryButton, pressed && s.pressed]} onPress={saveDraft} disabled={busy}>
           <Ionicons name="bookmark-outline" size={19} color={C.navy} /><Text style={s.secondaryButtonText}>{text("Save draft", "保存草稿")}</Text>
-        </Pressable>
+        </Pressable>}
         <Pressable style={({ pressed }) => [s.publishButton, (pressed || busy) && s.pressed]} onPress={publish} disabled={busy}>
           {busy ? <Ionicons name="hourglass-outline" size={19} color="#fff" /> : <Ionicons name="paper-plane-outline" size={19} color="#fff" />}
-          <Text style={s.publishButtonText}>{busy ? text("Working…", "处理中…") : text("Publish", "发布")}</Text>
+          <Text style={s.publishButtonText}>{busy ? text("Working…", "处理中…") : editId ? text("Save changes", "保存修改") : text("Publish", "发布")}</Text>
         </Pressable>
       </View>
-      <Pressable style={s.exitButton} onPress={() => router.canGoBack() ? router.back() : router.replace("/seller")} disabled={busy}><Text style={s.exitText}>{text("Exit without publishing", "退出且不发布")}</Text></Pressable>
+      <Pressable style={s.exitButton} onPress={() => router.canGoBack() ? router.back() : router.replace("/seller")} disabled={busy}><Text style={s.exitText}>{editId ? text("Exit without saving", "退出且不保存") : text("Exit without publishing", "退出且不发布")}</Text></Pressable>
     </ScrollView>
     <Modal visible={published} transparent animationType="fade" onRequestClose={() => setPublished(false)}>
       <View style={s.modalShade}>
         <View style={s.successModal} accessibilityRole="alert">
           <View style={s.successIcon}><Ionicons name="checkmark" size={34} color="#fff" /></View>
-          <Text style={s.successTitle}>{text("Listing published", "帖子发布成功")}</Text>
-          <Text style={s.successBody}>{text("Your listing is now live. You can view it immediately or return to the marketplace.", "你的帖子已经上线；现在可以查看发布记录，或返回首页。")}</Text>
+          <Text style={s.successTitle}>{editId ? text("Changes saved", "修改已保存") : text("Listing published", "帖子发布成功")}</Text>
+          <Text style={s.successBody}>{editId ? text("Buyers now see the updated listing.", "买家现在看到的是修改后的帖子。") : text("Your listing is now live. You can view it immediately or return to the marketplace.", "你的帖子已经上线；现在可以查看发布记录，或返回首页。")}</Text>
           <Pressable style={s.modalPrimary} onPress={() => router.replace("/my-listings")}><Text style={s.modalPrimaryText}>{text("View my listings", "查看我的发布")}</Text></Pressable>
           <Pressable style={s.modalSecondary} onPress={() => router.replace(Platform.OS === "web" ? "/marketplace" : "/")}><Text style={s.modalSecondaryText}>{text("Back to home", "返回首页")}</Text></Pressable>
         </View>
@@ -650,6 +674,65 @@ function Label({ text }: { text: string }) { return <Text style={s.label}>{text}
 
 function Notice({ text, danger = false }: { text: string; danger?: boolean }) {
   return <View style={[s.notice, danger && s.dangerNotice]}><Ionicons name={danger ? "warning-outline" : "shield-checkmark-outline"} size={20} color={danger ? C.danger : C.blue} /><Text style={[s.noticeText, danger && s.dangerText]}>{text}</Text></View>;
+}
+
+// Turns a saved listing back into form state for editing.
+function listingToDraft(l: TicketListing): Draft {
+  const x = l as any;
+  const str = (value: unknown) => (value === null || value === undefined ? "" : String(value));
+  const prices: Record<string, string> = {};
+  for (const [k, v] of Object.entries(x.guest_underoccupancy_prices ?? {})) prices[k] = str(v);
+  return {
+    ...initialDraft,
+    contentLanguage: x.content_language === "zh" ? "zh" : "en",
+    category: (x.listing_category ?? "formal") as ListingCategory,
+    campus: (x.campus ?? x.colleges?.university ?? "Oxford") as University,
+    collegeId: str(x.college_id),
+    formalType: x.formal_type ?? initialDraft.formalType,
+    dressCode: x.dress_code ?? initialDraft.dressCode,
+    date: str(x.formal_date),
+    time: str(x.formal_time).slice(0, 5),
+    studentSeats: str(x.student_seats ?? 0),
+    guestSeats: str(x.guest_seats ?? 0),
+    studentFace: str(x.reference_student_price_gbp),
+    guestFace: str(x.reference_guest_price_gbp),
+    studentPrice: str(x.student_listing_price_gbp),
+    guestPrice: str(x.guest_listing_price_gbp),
+    canSplit: Boolean(x.can_split),
+    underPolicy: x.underoccupancy_policy === "tiered" ? "tiered" : "face_value",
+    underPrices: prices,
+    allowOutsideCollege: Boolean(x.allow_outside_college),
+    allowOutsideOxbridge: Boolean(x.allow_outside_oxbridge),
+    entryRequirements: x.entry_requirements ?? initialDraft.entryRequirements,
+    idRequirement: x.id_requirement ?? initialDraft.idRequirement,
+    needsHostEscort: Boolean(x.needs_host_escort),
+    guestNameRequired: Boolean(x.guest_name_required),
+    guestNameDeadline: str(x.guest_name_deadline).slice(0, 10),
+    transferConfirmed: Boolean(x.transfer_confirmed),
+    vegan: Boolean(x.vegan_available),
+    vegetarian: Boolean(x.vegetarian_available),
+    halal: Boolean(x.halal_available),
+    glutenFree: Boolean(x.gluten_free_available),
+    dietaryNote: str(x.dietary_note),
+    ticketType: x.ticket_type === "Train" ? "Train" : "Coach",
+    origin: str(x.origin_name),
+    destination: str(x.destination_name),
+    arrivalDate: str(x.arrival_date),
+    arrivalTime: str(x.arrival_time).slice(0, 5),
+    operatorName: str(x.operator_name),
+    railcard: (x.railcard ?? "none") as Railcard,
+    quantity: str(x.ticket_quantity ?? 1),
+    faceValue: x.face_value_gbp ? str(x.face_value_gbp) : "",
+    askingPrice: x.asking_price_gbp ? str(x.asking_price_gbp) : "",
+    eventKind: x.event_kind === "airport_ride_share" ? "airport_ride_share" : "admission",
+    eventName: x.event_kind === "airport_ride_share" ? "" : str(x.event_name),
+    eventDescription: str(x.event_description),
+    notes: str(x.notes),
+    preferredContact: x.preferred_contact_method ?? initialDraft.preferredContact,
+    contacts: Array.isArray(x.private_contacts) ? x.private_contacts : [],
+    imageUris: Array.isArray(x.image_urls) ? x.image_urls : [],
+    openToSwap: Boolean(x.open_to_swap),
+  };
 }
 
 function Pills({ value, options, onChange }: { value: string; options: string[][]; onChange: (value: string) => void }) {

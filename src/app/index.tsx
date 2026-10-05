@@ -1,8 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
-import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Platform,
   Pressable,
@@ -50,6 +52,11 @@ export default function Home() {
   return <MarketplaceHome />;
 }
 
+// The last listings seen, shown instantly on the next open while fresh ones
+// load. From far away the listings and seller requests take a few seconds,
+// which used to leave the marketplace blank.
+const LISTINGS_CACHE = "formal-exchange-listings-cache-v1";
+
 export function MarketplaceHome() {
   const { language, text } = useAppLanguage();
   const params = useLocalSearchParams<{ filter?: string | string[] }>();
@@ -57,6 +64,7 @@ export function MarketplaceHome() {
   const [hydrated, setHydrated] = useState(Platform.OS !== "web");
   const mobile = !hydrated || width < 600;
   const [items, setItems] = useState<TicketListing[]>([]);
+  const [loading, setLoading] = useState(true);
   const [sellers, setSellers] = useState<Record<string, SellerInfo>>({});
   const [filter, setFilter] = useState("all");
   const [tradeMode, setTradeMode] = useState<"market" | "swap">("market");
@@ -87,14 +95,42 @@ export function MarketplaceHome() {
     }
   }, [params.filter]);
   useEffect(() => {
-    loadActiveListings()
-      .then((list) => {
-        setItems(list);
-        const ids = [...new Set(list.map((l) => l.seller_user_id).filter(Boolean) as string[])];
-        if (ids.length) loadSellerProfiles(ids).then(setSellers);
+    AsyncStorage.getItem(LISTINGS_CACHE)
+      .then((raw) => {
+        if (!raw) return;
+        const cached = JSON.parse(raw) as { items?: TicketListing[]; sellers?: Record<string, SellerInfo> };
+        // Never overwrite a fresh result that arrived first.
+        setItems((old) => (old.length ? old : cached.items ?? []));
+        setSellers((old) => (Object.keys(old).length ? old : cached.sellers ?? {}));
       })
-      .catch((e) => Alert.alert(text("Could not load listings", "无法加载帖子"), e.message));
-  }, [language]);
+      .catch(() => {});
+  }, []);
+  // Refresh every time the marketplace is shown, so a listing published or
+  // edited a moment ago is there on return.
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      loadActiveListings()
+        .then(async (list) => {
+          if (cancelled) return;
+          setItems(list);
+          const ids = [...new Set(list.map((l) => l.seller_user_id).filter(Boolean) as string[])];
+          const profiles = ids.length ? await loadSellerProfiles(ids).catch(() => ({})) : {};
+          if (cancelled) return;
+          setSellers(profiles);
+          AsyncStorage.setItem(LISTINGS_CACHE, JSON.stringify({ items: list, sellers: profiles })).catch(() => {});
+        })
+        .catch((e) => {
+          if (!cancelled) Alert.alert(text("Could not load listings", "无法加载帖子"), e.message);
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
+      return () => {
+        cancelled = true;
+      };
+    }, [language]),
+  );
   const query = searchQuery.trim().toLocaleLowerCase();
   const shown = items.filter((x) => {
     const inMode = tradeMode === "market" || Boolean(x.open_to_swap);
@@ -285,6 +321,7 @@ export function MarketplaceHome() {
          * of the screen and truncated every title.
          */}
         {filter === "rideshare" ? <Pressable style={s.landingSwapHero} onPress={() => router.push("/list-ticket?type=rideshare")}><View style={s.landingSwapHeroIcon}><Ionicons name="airplane" size={22} color="#fff" /></View><View style={{ flex: 1 }}><Text style={s.landingSwapHeroTitle}>{text("Going to or from the airport? Post your ride", "接机送机？发帖找人拼车")}</Text><Text style={s.landingSwapHeroText}>{text("Open to every UK university and any email. Add your pickup, destination and time, and people travelling the same way can message you.", "全英任何学校、任何邮箱都能发。填上车地点、目的地和时间，同天同向的人会私信你。")}</Text></View><Ionicons name="add-circle" size={24} color="#9A3412" /></Pressable> : null}
+        {loading && items.length === 0 ? <View style={s.loadingBox}><ActivityIndicator color="#071B3A" /><Text style={s.loadingText}>{text("Loading listings…", "正在加载帖子…")}</Text></View> : null}
         <View style={s.grid}>
           <View style={s.gridColumn}>
             {shown.filter((_, i) => i % 2 === 0).map((x) => (
@@ -298,7 +335,7 @@ export function MarketplaceHome() {
           </View>
         </View>
         <View style={s.grid}>
-          {items.length === 0 &&
+          {!loading && items.length === 0 &&
             (filter === "all" ||
               ["formal", "hall", "mcr"].includes(filter)) && (
               <Demo filter={filter} mobile={mobile} filterKeyword={applied.kw} filterUni={applied.uni} filterDate={applied.date} />
@@ -556,6 +593,8 @@ function Card({ x, mobile, language, seller }: { x: TicketListing; mobile: boole
 }
 function formatDuration(minutes?:number|null){if(!minutes)return "Duration not stated";const h=Math.floor(minutes/60),m=minutes%60;return `${h} hr${h===1?"":"s"}${m?` ${m} min`:""}`;}
 const s = StyleSheet.create({
+  loadingBox: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, paddingVertical: 28 },
+  loadingText: { color: "#64748B", fontWeight: "800" },
   page: { flex: 1, backgroundColor: "#F7F4EE" },
   c: {
     boxSizing: "border-box",

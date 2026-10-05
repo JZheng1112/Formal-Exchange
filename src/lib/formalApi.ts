@@ -1024,6 +1024,30 @@ export async function loadMyListings() {
   return (data ?? []) as TicketListing[];
 }
 
+export async function loadMyListing(listingId: string) {
+  const user = await getCurrentUser();
+  if (!user?.id) throw new Error("Please log in to edit your listing.");
+  const { data, error } = await supabase
+    .from("ticket_listings")
+    .select(`*, colleges (id,name,university,institution_type,website_url,crest_url)`)
+    .eq("id", listingId)
+    .eq("seller_user_id", user.id)
+    .single();
+  if (error) throw error;
+  return data as TicketListing;
+}
+
+export async function updateMyListing(listingId: string, payload: Record<string, unknown>) {
+  const user = await getCurrentUser();
+  if (!user?.id) throw new Error("Please log in to edit your listing.");
+  const { error } = await supabase
+    .from("ticket_listings")
+    .update(payload)
+    .eq("id", listingId)
+    .eq("seller_user_id", user.id);
+  if (error) throw error;
+}
+
 export async function markListingSold(listingId: string) {
   const user = await getCurrentUser();
   if (!user?.id) throw new Error("Please log in first.");
