@@ -25,14 +25,19 @@ import { useAppLanguage } from "../lib/language";
 import { openAppStore, openHomeItemsMarket } from "../lib/externalLinks";
 const F = [
   ["all", "All", "全部"],
+  ["rideshare", "✈ Airport ride-share", "✈ 机场拼车"],
   ["formal", "Formal", "Formal 晚宴"],
   ["hall", "Hall Formal", "学院 Formal"],
   ["mcr", "MCR Guest Dinner", "MCR 宾客晚宴"],
   ["coach", "Coach", "大巴"],
   ["train", "Train", "火车"],
-  ["event", "Other events", "其他门票/拼车"],
+  ["event", "Other events", "其他活动门票"],
   ["home", "Second-hand home items (liuxuejishi.com)", "二手家居用品（liuxuejishi.com）"],
 ];
+// Ride-shares are stored as event listings; older rows only carry the
+// ticket_type label, so check both.
+const isRideShare = (x: { event_kind?: string | null; ticket_type?: string | null }) =>
+  x.event_kind === "airport_ride_share" || x.ticket_type === "Airport ride-share";
 export default function Home() {
   const { width } = useWindowDimensions();
   const [hydrated, setHydrated] = useState(Platform.OS !== "web");
@@ -67,7 +72,7 @@ export function MarketplaceHome() {
   const clearFilters = () => { setFilterKeyword(""); setFilterUni("all"); setFilterDate(""); setFilterOrigin(""); setFilterDest(""); setApplied({kw:"",uni:"all",date:"",origin:"",dest:""}); };
   const hasActiveFilters = applied.kw || applied.uni !== "all" || applied.date || applied.origin || applied.dest;
   const showUni = filter === "all" || ["formal","hall","mcr"].includes(filter);
-  const showRoute = filter === "all" || ["coach","train","event"].includes(filter);
+  const showRoute = filter === "all" || ["coach","train","event","rideshare"].includes(filter);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   useEffect(() => {
@@ -99,7 +104,8 @@ export function MarketplaceHome() {
       (filter === "mcr" && x.formal_type === "MCR Guest Dinner") ||
       (filter === "coach" && ["Coach", "Coach ticket"].includes(x.ticket_type ?? "")) ||
       (filter === "train" && ["Train", "Train ticket"].includes(x.ticket_type ?? "")) ||
-      (filter === "event" && x.listing_category === "event");
+      (filter === "rideshare" && isRideShare(x)) ||
+      (filter === "event" && x.listing_category === "event" && !isRideShare(x));
     const isFormal = (x.listing_category ?? "formal") === "formal";
     const uni = x.campus ?? null;
     const inUni = !isFormal || applied.uni === "all" || uni === applied.uni;
@@ -282,6 +288,7 @@ export function MarketplaceHome() {
          * their own percentage width, which is what squeezed them to a third
          * of the screen and truncated every title.
          */}
+        {filter === "rideshare" ? <Pressable style={s.landingSwapHero} onPress={() => router.push("/list-ticket?type=rideshare")}><View style={s.landingSwapHeroIcon}><Ionicons name="airplane" size={22} color="#fff" /></View><View style={{ flex: 1 }}><Text style={s.landingSwapHeroTitle}>{text("Going to or from the airport? Post your ride", "接机送机？发帖找人拼车")}</Text><Text style={s.landingSwapHeroText}>{text("Open to every UK university and any email. Add your pickup, airport and time, and people travelling the same way can message you.", "全英任何学校、任何邮箱都能发。填上车点、机场和时间，同天同向的人会私信你。")}</Text></View><Ionicons name="add-circle" size={24} color="#9A3412" /></Pressable> : null}
         <View style={s.grid}>
           <View style={s.gridColumn}>
             {shown.filter((_, i) => i % 2 === 0).map((x) => (

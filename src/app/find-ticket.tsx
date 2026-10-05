@@ -9,7 +9,8 @@ import { openHomeItemsMarket } from "../lib/externalLinks";
 
 const C={bg:"#F5F1E8",card:"#fff",navy:"#071B3A",blue:"#123C69",muted:"#64748B",border:"#E2E8F0"};
 const Select="select" as any,Input="input" as any;
-type Category=ListingCategory|"all"|"swap";
+type Category=ListingCategory|"rideshare"|"all"|"swap";
+const isRideShare=(x:{event_kind?:string|null;ticket_type?:string|null})=>x.event_kind==="airport_ride_share"||x.ticket_type==="Airport ride-share";
 
 export default function FindTicket(){
   const {language,text}=useAppLanguage();
@@ -46,7 +47,12 @@ export default function FindTicket(){
   const filtered=useMemo(()=>listings.filter(item=>{
     const itemCategory=item.listing_category??"formal";
     const price=Number(item.asking_price_gbp??item.student_listing_price_gbp??0);
-    return (category==="all"||category==="swap"?category!=="swap"||item.open_to_swap===true:itemCategory===category)
+    const inCategory=category==="all"?true
+      :category==="swap"?item.open_to_swap===true
+      :category==="rideshare"?isRideShare(item)
+      :category==="event"?itemCategory==="event"&&!isRideShare(item)
+      :itemCategory===category;
+    return inCategory
       &&(!sameCity||item.campus===myCity)
       &&(collegeId==="all"||item.college_id===collegeId)
       &&(!date||item.formal_date===date)
@@ -72,7 +78,7 @@ export default function FindTicket(){
 
     {/* Category pills - always visible */}
     <View style={s.pills}>
-      {([["formal","Formal","Formal"],["coach_train","Coach / Train","大巴 / 火车"],["event","Other","其他"],["all","All","全部"],["swap","Swaps","换票"]] as const).map(([id,en,zh])=>
+      {([["formal","Formal","Formal"],["rideshare","✈ Airport ride-share","✈ 机场拼车"],["coach_train","Coach / Train","大巴 / 火车"],["event","Other","其他"],["all","All","全部"],["swap","Swaps","换票"]] as const).map(([id,en,zh])=>
         <Pressable key={id} style={[s.pill,id==="swap"&&s.swapPill,category===id&&s.pillOn,category===id&&id==="swap"&&s.swapOn]} onPress={()=>setCategory(id as Category)}>
           <Text style={[s.pillText,category===id&&s.pillTextOn]}>{language==="zh"?zh:en}</Text>
         </Pressable>
@@ -193,7 +199,7 @@ function ListingCard({item,mobile,seller}:{item:TicketListing;mobile:boolean;sel
 
   return <Pressable style={({pressed})=>[s.card,mobile&&s.cardMobile,pressed&&s.pressed]} onPress={()=>router.push(`/listing-detail?id=${item.id}`)}>
     {image ? <Image source={{uri:image}} style={s.image} contentFit="cover" cachePolicy="memory-disk" transition={120}/>
-      : <View style={[s.image,s.imageEmpty]}><Ionicons name={category==="coach_train"?"train-outline":category==="event"?"calendar-outline":"restaurant-outline"} size={34} color="#8BA6C3"/></View>}
+      : <View style={[s.image,s.imageEmpty]}><Ionicons name={category==="coach_train"?"train-outline":isRideShare(item)?"airplane-outline":category==="event"?"calendar-outline":"restaurant-outline"} size={34} color="#8BA6C3"/></View>}
     <View style={s.cardBody}>
       {item.open_to_swap ? <View style={s.swapBadge}><Ionicons name="swap-horizontal" size={11} color="#78350F"/><Text style={s.swapBadgeText}>{text("SWAP","换票")}</Text></View> : null}
       <Text style={s.cardType} numberOfLines={1}>{localValue(item.campus??item.colleges.university,language)} · {localValue(item.ticket_type??item.formal_type,language)}</Text>

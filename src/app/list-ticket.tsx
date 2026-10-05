@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
@@ -185,6 +185,8 @@ export default function ListTicket() {
   const [status, setStatus] = useState("");
   const [draftFound, setDraftFound] = useState(false);
   const [published, setPublished] = useState(false);
+  const params = useLocalSearchParams<{ type?: string }>();
+  const rideShare = form.category === "event" && form.eventKind === "airport_ride_share";
 
   useEffect(() => {
     Promise.all([loadColleges(), loadMyProfile(), AsyncStorage.getItem(DRAFT_KEY)])
@@ -193,22 +195,23 @@ export default function ListTicket() {
         setProfileEmail(profile?.email?.toLowerCase() ?? "");
         const preferredCampus = profile?.university ?? "Oxford";
         const preferredCollege = profile?.college_id ?? allColleges.find((c) => c.university === preferredCampus)?.id ?? "";
-        setForm((old) => ({ ...old, campus: preferredCampus, collegeId: preferredCollege, contentLanguage: language }));
+        const linkedRide = params.type === "rideshare" ? { category: "event" as ListingCategory, eventKind: "airport_ride_share" as EventKind } : {};
+        setForm((old) => ({ ...old, ...linkedRide, campus: preferredCampus, collegeId: preferredCollege, contentLanguage: language }));
         setDraftFound(Boolean(saved));
       })
       .catch((error) => setStatus(error?.message ?? text("Could not load this form.", "无法加载此表单。")));
   }, [language]);
 
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) => setForm((old) => ({ ...old, [key]: value }));
-  const isOxbridge = /(^|\.)ox\.ac\.uk$|(^|\.)cam\.ac\.uk$/i.test(profileEmail.split("@")[1] ?? "");
+  const isOxbridge = /(^|\.)(ox|cam|durham|dur)\.ac\.uk$/i.test(profileEmail.split("@")[1] ?? "");
   const campusColleges = useMemo(() => colleges.filter((c) => c.university === form.campus), [colleges, form.campus]);
   const selectedCollege = colleges.find((c) => c.id === form.collegeId);
   const guestCount = Math.max(0, Math.floor(Number(form.guestSeats) || 0));
   const underTiers = useMemo(() => Array.from({ length: Math.max(0, guestCount - 1) }, (_, i) => guestCount - 1 - i), [guestCount]);
   const duration = calculateDuration(form.date, form.time, form.arrivalDate || form.date, form.arrivalTime);
 
-  function changeCategory(category: ListingCategory) {
-    if (category === form.category) return;
+  function changeCategory(category: ListingCategory, eventKind: EventKind = "admission") {
+    if (category === form.category && (category !== "event" || eventKind === form.eventKind)) return;
     const keep = {
       campus: form.campus,
       collegeId: colleges.find((c) => c.university === form.campus)?.id ?? "",
@@ -216,7 +219,7 @@ export default function ListTicket() {
       contacts: form.contacts,
       contentLanguage: form.contentLanguage,
     };
-    setForm({ ...initialDraft, category, ...keep });
+    setForm({ ...initialDraft, category, eventKind, ...keep });
     setStatus(text("Ticket type changed. Fields that no longer apply were cleared.", "票务类型已更改，不再适用的字段已清空。"));
   }
 
@@ -326,7 +329,6 @@ export default function ListTicket() {
       if (!fallbackCollege) throw new Error(text("College directory is unavailable. Please try again.", "学院目录暂不可用，请重试。"));
       const formal = form.category === "formal";
       const transport = form.category === "coach_train";
-      const rideShare = form.category === "event" && form.eventKind === "airport_ride_share";
       const memberSeats = formal ? Math.max(0, Math.floor(Number(form.studentSeats) || 0)) : Math.max(1, Math.floor(Number(form.quantity) || 1));
       const guests = formal ? guestCount : 0;
       const asking = formal ? Number(form.studentPrice) : Number(form.askingPrice || 0);
@@ -404,7 +406,7 @@ export default function ListTicket() {
         hall_photo_url: imageUrls[0] ?? null,
         image_urls: imageUrls,
         preferred_contact_method: form.preferredContact,
-        open_to_swap: form.openToSwap,
+        open_to_swap: rideShare ? false : form.openToSwap,
         private_contacts: form.contacts.filter((item) => item.value.trim()),
         vegan_available: formal ? form.vegan : false,
         vegetarian_available: formal ? form.vegetarian : false,
@@ -455,14 +457,16 @@ export default function ListTicket() {
 
       <Card title={text("1 · What are you listing?", "1 · 你要发布什么？")} hint={text("Changing the type clears fields that no longer apply.", "更改类型会清空不再适用的字段。") }>
         <Pills
-          value={form.category}
+          value={rideShare ? "ride_share" : form.category}
           options={[
             ["formal", "Formal"],
+            ["ride_share", text("✈ Airport ride-share", "✈ 机场拼车")],
             ["coach_train", text("Coach / train", "大巴 / 火车")],
-            ["event", text("Other ticket / ride-share", "其他门票 / 拼车")],
+            ["event", text("Other event ticket", "其他活动门票")],
           ]}
-          onChange={(value) => changeCategory(value as ListingCategory)}
+          onChange={(value) => value === "ride_share" ? changeCategory("event", "airport_ride_share") : changeCategory(value as ListingCategory)}
         />
+        {form.category !== "formal" ? <Notice text={text("Ride-shares and travel tickets are open to every UK university and any email — term start, Christmas, Easter or summer.", "拼车和车票全英通用，任何学校、任何邮箱都能发，开学、圣诞、复活节、暑假都用得上。")} /> : null}
         <Pressable style={s.externalMarket} onPress={() => openHomeItemsMarket(language)}><Ionicons name="home-outline" size={18} color={C.blue} /><Text style={s.externalMarketText}>{language === "zh" ? "二手家居用品（liuxuejishi.com）" : "Second-hand home items (liuxuejishi.com)"}</Text><Ionicons name="open-outline" size={17} color={C.blue} /></Pressable>
       </Card>
 
@@ -570,8 +574,7 @@ export default function ListTicket() {
 
       {form.category === "event" ? (
         <>
-          <Card title={text("2 · What is offered?", "2 · 提供什么？")}>
-            <Pills value={form.eventKind} options={[["admission", text("Event admission", "活动门票")], ["airport_ride_share", text("Airport ride-share", "机场拼车")]]} onChange={(value) => setForm((old) => ({ ...old, eventKind: value as EventKind, eventName: "", eventNameEn: "", origin: "", destination: "", eventDescription: "", eventDescriptionEn: "" }))} />
+          <Card title={rideShare ? text("2 · Your ride", "2 · 拼车行程") : text("2 · Event ticket", "2 · 活动门票")}>
             {form.eventKind === "admission" ? <TextField label={text("Event name", "活动名称")} value={form.eventName} setValue={(value) => set("eventName", value)} placeholder={text("Concert, museum, theatre or other event", "音乐会、博物馆、剧院或其他活动") } /> : <View style={[s.row, compact && s.stack]}>
               <TextField label={text("Pickup", "上车地点")} value={form.origin} setValue={(value) => set("origin", value)} placeholder={text("College or city pickup", "学院或城市上车地点") } />
               <TextField label={text("Airport / destination", "机场 / 目的地")} value={form.destination} setValue={(value) => set("destination", value)} placeholder={text("Heathrow Terminal 5", "希思罗机场 5 号航站楼") } />
@@ -589,10 +592,10 @@ export default function ListTicket() {
         </>
       ) : null}
 
-      <Card title={text("Ticket swap (optional)", "票换票（可选）")} hint={text("This is an extra option on a normal listing, not a separate listing type. Your price and ordinary sale/contact route stay available.", "这是普通帖子上的附加选项，不是另一种发布类型。勾选后仍然保留售价和普通交易、联系流程。") }>
+      {rideShare ? null : <Card title={text("Ticket swap (optional)", "票换票（可选）")} hint={text("This is an extra option on a normal listing, not a separate listing type. Your price and ordinary sale/contact route stay available.", "这是普通帖子上的附加选项，不是另一种发布类型。勾选后仍然保留售价和普通交易、联系流程。") }>
         <Toggle label={text("I am also open to exchanging this for another ticket", "我也愿意用这张票与别人换票")} value={form.openToSwap} onChange={(value) => set("openToSwap", value)} />
         {form.openToSwap ? <Notice text={text("The listing cover will show Supports ticket swaps and the post will appear in the Ticket Swap filter. A direct swap or any optional price difference is agreed privately. Formal Exchange does not process or protect that payment. Verify eligibility and transfer rules first, and never send QR codes or full ticket files before verifying the other person.", "帖子封面会显示“支持票换票”，并出现在票换票筛选中。直接交换或是否补差价由双方私下商定，Formal Exchange 不代收或保障这笔付款。请先核实双方资格与票务转让规则；核实对方前不要发送二维码或完整票务文件。") } /> : null}
-      </Card>
+      </Card>}
 
       <Card title={`${form.category === "formal" ? "6" : "4"} · ${text("Photos (optional)", "图片（可选）")}`} hint={form.category === "formal" ? text("Optional photos may show the dining hall, previous dishes or the atmosphere. Never upload the ticket, QR code, barcode, booking reference or a personal document.", "可选图片可展示礼堂、以往菜品或用餐氛围。请勿上传票面、二维码、条形码、预订编号或个人证件。") : text("Photos are optional. Never upload a QR code, barcode, booking reference, ticket document or personal document.", "图片为可选。请勿上传二维码、条形码、预订编号、票务文件或个人证件。") }>
         <View style={s.photos}>
