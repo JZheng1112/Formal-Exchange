@@ -34,6 +34,7 @@ import {
   uploadAvatar,
 } from "../lib/formalApi";
 import { useAppLanguage } from "../lib/language";
+import { checkForUpdatesNow, versionLabel } from "../lib/appUpdates";
 
 const C = {
   bg: "#F7F4EE",
@@ -459,6 +460,12 @@ export default function MyProfileScreen() {
             <Pressable style={s.settingsItem} onPress={() => { setSettingsOpen(false); router.push("/contact-support"); }}>
               <Ionicons name="help-circle-outline" size={20} color={C.navy} />
               <Text style={s.settingsItemText}>{text("Help & Support", "帮助与支持")}</Text>
+              <Ionicons name="chevron-forward" size={18} color={C.muted} />
+            </Pressable>
+
+            <Pressable style={s.settingsItem} onPress={() => { setSettingsOpen(false); checkForUpdatesNow(text); }}>
+              <Ionicons name="cloud-download-outline" size={20} color={C.navy} />
+              <Text style={s.settingsItemText}>{text("Check for updates", "检查更新")}{"\n"}<Text style={{ fontSize: 12, color: C.muted, fontWeight: "600" }}>{text("Version", "版本")} {versionLabel(language)}</Text></Text>
               <Ionicons name="chevron-forward" size={18} color={C.muted} />
             </Pressable>
 

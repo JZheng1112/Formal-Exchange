@@ -2,7 +2,7 @@ import { StatusBar } from "expo-status-bar";
 import { Stack, usePathname } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Alert, AppState, Platform, Pressable, StyleSheet, Text, View } from "react-native";
-import * as Updates from "expo-updates";
+import { downloadUpdate, offerRestart, updatesSupported } from "../lib/appUpdates";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { recordPageView } from "../lib/formalApi";
@@ -76,8 +76,8 @@ function SafeFrame({ children }: { children: React.ReactNode }) {
  * downloaded, ask whether to restart into it now.
  *
  * Choosing "Later" is not lost: expo-updates runs the downloaded update on
- * the next cold start anyway. The same update is not offered twice in one
- * session.
+ * the next cold start anyway, the prompt comes back the next time the app
+ * returns from the background, and My profile has a manual check.
  */
 // Shorter buys nothing: an update only exists once one is published, and
 // the launch and foreground checks already catch it within a second.
@@ -92,7 +92,7 @@ function UpdatePrompt() {
 
   useEffect(() => {
     const text = (en: string, zh: string) => textRef.current(en, zh);
-    if (Platform.OS === "web" || __DEV__ || !Updates.isEnabled) return;
+    if (!updatesSupported()) return;
 
     let checking = false;
     let offered = "";
@@ -101,24 +101,10 @@ function UpdatePrompt() {
       if (checking || AppState.currentState !== "active") return;
       checking = true;
       try {
-        const result = await Updates.checkForUpdateAsync();
-        const id = result.isAvailable ? result.manifest?.id ?? "available" : "";
+        const id = await downloadUpdate();
         if (!id || id === offered) return;
-        // Fetch even if the launch-time check already downloaded it; in that
-        // case isNew is false but the update is still waiting to run.
-        await Updates.fetchUpdateAsync();
         offered = id;
-        Alert.alert(
-          text("A new version is ready", "有新版本可用"),
-          text(
-            "Tap Update now and the app restarts into the new version in a few seconds. Anything you were typing is not saved, so finish it first if you need to.\n\nChoose Later and the update installs itself next time you fully close and reopen the app.",
-            "点「立即更新」，APP 会在几秒内自动重启到新版。正在填写的内容不会保存，需要的话先填完再更新。\n\n选「稍后」，下次把 APP 彻底关闭再打开时会自动更新。",
-          ),
-          [
-            { text: text("Later", "稍后"), style: "cancel" },
-            { text: text("Update now", "立即更新"), onPress: () => { Updates.reloadAsync().catch(() => {}); } },
-          ],
-        );
+        offerRestart(text);
       } catch {
         // Offline or the update server is unreachable: keep running what we have.
       } finally {
@@ -129,6 +115,7 @@ function UpdatePrompt() {
     check();
     const timer = setInterval(check, CHECK_EVERY_MS);
     const sub = AppState.addEventListener("change", (state) => {
+      if (state === "background") offered = "";
       if (state === "active") check();
     });
     return () => {
