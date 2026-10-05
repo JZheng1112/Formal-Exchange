@@ -1,7 +1,7 @@
 import { StatusBar } from "expo-status-bar";
 import { Stack, usePathname } from "expo-router";
-import { useEffect, useState } from "react";
-import { AppState, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Alert, AppState, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import * as Updates from "expo-updates";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -70,26 +70,50 @@ function SafeFrame({ children }: { children: React.ReactNode }) {
 
 /**
  * By default expo-updates downloads a new update in the background and only
- * runs it on the next cold start, so people kept seeing the old version
- * after opening the app. Check on launch and apply straight away; on return
- * from the background, only after a long absence so nobody is reloaded in
- * the middle of what they were doing.
+ * runs it on the next cold start, so people kept seeing the old version.
+ * Check as soon as the app opens, every time it comes back to the
+ * foreground, and every minute while it is open; once an update has been
+ * downloaded, ask whether to restart into it now.
+ *
+ * Choosing "Later" is not lost: expo-updates runs the downloaded update on
+ * the next cold start anyway. The same update is not offered twice in one
+ * session.
  */
-const RESUME_CHECK_AFTER_MS = 10 * 60 * 1000;
+const CHECK_EVERY_MS = 60 * 1000;
 
-function useApplyUpdates() {
+function UpdatePrompt() {
+  const { text } = useAppLanguage();
+  // Read through a ref so a language change does not restart the checker
+  // and forget which update was already offered.
+  const textRef = useRef(text);
+  textRef.current = text;
+
   useEffect(() => {
+    const text = (en: string, zh: string) => textRef.current(en, zh);
     if (Platform.OS === "web" || __DEV__ || !Updates.isEnabled) return;
 
     let checking = false;
-    async function apply() {
-      if (checking) return;
+    let offered = "";
+
+    async function check() {
+      if (checking || AppState.currentState !== "active") return;
       checking = true;
       try {
-        const { isAvailable } = await Updates.checkForUpdateAsync();
-        if (!isAvailable) return;
-        const { isNew } = await Updates.fetchUpdateAsync();
-        if (isNew) await Updates.reloadAsync();
+        const result = await Updates.checkForUpdateAsync();
+        const id = result.isAvailable ? result.manifest?.id ?? "available" : "";
+        if (!id || id === offered) return;
+        // Fetch even if the launch-time check already downloaded it; in that
+        // case isNew is false but the update is still waiting to run.
+        await Updates.fetchUpdateAsync();
+        offered = id;
+        Alert.alert(
+          text("New version ready", "有新版本"),
+          text("An update has been downloaded. Restart now to use it?", "新版本已下载好，现在重启使用吗？"),
+          [
+            { text: text("Later", "稍后"), style: "cancel" },
+            { text: text("Update now", "立即更新"), onPress: () => { Updates.reloadAsync().catch(() => {}); } },
+          ],
+        );
       } catch {
         // Offline or the update server is unreachable: keep running what we have.
       } finally {
@@ -97,20 +121,22 @@ function useApplyUpdates() {
       }
     }
 
-    apply();
-
-    let backgroundedAt = 0;
+    check();
+    const timer = setInterval(check, CHECK_EVERY_MS);
     const sub = AppState.addEventListener("change", (state) => {
-      if (state === "background") backgroundedAt = Date.now();
-      if (state === "active" && backgroundedAt && Date.now() - backgroundedAt > RESUME_CHECK_AFTER_MS) apply();
+      if (state === "active") check();
     });
-    return () => sub.remove();
+    return () => {
+      clearInterval(timer);
+      sub.remove();
+    };
   }, []);
+
+  return null;
 }
 
 export default function RootLayout() {
   const pathname = usePathname();
-  useApplyUpdates();
 
   useEffect(() => {
     if (pathname) recordPageView(pathname).catch(() => {});
@@ -120,6 +146,7 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <LanguageProvider>
         <StatusBar style="dark" />
+        <UpdatePrompt />
         <SafeFrame>
           {/*
            * Slot renders a route with no navigator, so there was no stack and
