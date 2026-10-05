@@ -72,14 +72,16 @@ function SafeFrame({ children }: { children: React.ReactNode }) {
  * By default expo-updates downloads a new update in the background and only
  * runs it on the next cold start, so people kept seeing the old version.
  * Check as soon as the app opens, every time it comes back to the
- * foreground, and every minute while it is open; once an update has been
+ * foreground, and every 15 seconds while it is open; once an update has been
  * downloaded, ask whether to restart into it now.
  *
  * Choosing "Later" is not lost: expo-updates runs the downloaded update on
  * the next cold start anyway. The same update is not offered twice in one
  * session.
  */
-const CHECK_EVERY_MS = 60 * 1000;
+// Shorter buys nothing: an update only exists once one is published, and
+// the launch and foreground checks already catch it within a second.
+const CHECK_EVERY_MS = 15 * 1000;
 
 function UpdatePrompt() {
   const { text } = useAppLanguage();
@@ -107,8 +109,15 @@ function UpdatePrompt() {
         await Updates.fetchUpdateAsync();
         offered = id;
         Alert.alert(
-          text("New version ready", "有新版本"),
-          text("An update has been downloaded. Restart now to use it?", "新版本已下载好，现在重启使用吗？"),
+          text("A new version is ready", "有新版本可用"),
+          text(
+            "Tap Update now and the app restarts into the new version in a few seconds. Anything you were typing is not saved, so finish it first if you need to.
+
+Choose Later and the update installs itself next time you fully close and reopen the app.",
+            "点「立即更新」，APP 会在几秒内自动重启到新版。正在填写的内容不会保存，需要的话先填完再更新。
+
+选「稍后」，下次把 APP 彻底关闭再打开时会自动更新。",
+          ),
           [
             { text: text("Later", "稍后"), style: "cancel" },
             { text: text("Update now", "立即更新"), onPress: () => { Updates.reloadAsync().catch(() => {}); } },
